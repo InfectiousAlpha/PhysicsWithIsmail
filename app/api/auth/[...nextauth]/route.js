@@ -1,8 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-// We export this object so we can use it in 'app/page.jsx' to get the session
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -26,9 +25,10 @@ export const authOptions = {
         );
 
         if (user) {
-          // User found! Return their name
+          // User found! Return a simple object
           return { id: user.username, name: user.username };
         } else {
+          // User not found
           return null;
         }
       }
@@ -38,8 +38,6 @@ export const authOptions = {
     signIn: '/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
-
-const handler = NextAuth(authOptions);
+});
 
 export { handler as GET, handler as POST };
