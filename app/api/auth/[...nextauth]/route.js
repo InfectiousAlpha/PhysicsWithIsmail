@@ -1,7 +1,8 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const handler = NextAuth({
+// We export this object so we can use it in 'app/page.jsx' to get the session
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -10,24 +11,35 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials, req) {
-        // This is where we check the hardcoded values from Vercel Env Vars
-        const userMatches = credentials.username === process.env.ADMIN_USER;
-        const passwordMatches = credentials.password === process.env.ADMIN_PASSWORD;
+        // 1. Get the list of users from the Environment Variable
+        let allowedUsers = [];
+        try {
+          allowedUsers = JSON.parse(process.env.APP_USERS || "[]");
+        } catch (e) {
+          console.error("Error parsing APP_USERS env var", e);
+          return null;
+        }
 
-        if (userMatches && passwordMatches) {
-          // Any object returned will be saved in the `user` property of the JWT
-          return { id: "1", name: "Admin", email: "admin@example.com" };
+        // 2. Find if the user exists in that list
+        const user = allowedUsers.find(
+          (u) => u.username === credentials.username && u.password === credentials.password
+        );
+
+        if (user) {
+          // User found! Return their name
+          return { id: user.username, name: user.username };
         } else {
-          // If you return null then an error will be displayed advising the user to check their details.
           return null;
         }
       }
     })
   ],
   pages: {
-    signIn: '/login', // Custom login page
+    signIn: '/login',
   },
-  secret: process.env.NEXTAUTH_SECRET, // Required for security
-});
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
