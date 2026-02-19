@@ -10,34 +10,24 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials, req) {
-        // 1. Get the list of users from the Environment Variable
-        let allowedUsers = [];
-        try {
-          allowedUsers = JSON.parse(process.env.APP_USERS || "[]");
-        } catch (e) {
-          console.error("Error parsing APP_USERS env var", e);
-          return null;
-        }
+        // This is where we check the hardcoded values from Vercel Env Vars
+        const userMatches = credentials.username === process.env.ADMIN_USER;
+        const passwordMatches = credentials.password === process.env.ADMIN_PASSWORD;
 
-        // 2. Find if the user exists in that list
-        const user = allowedUsers.find(
-          (u) => u.username === credentials.username && u.password === credentials.password
-        );
-
-        if (user) {
-          // User found! Return a simple object
-          return { id: user.username, name: user.username };
+        if (userMatches && passwordMatches) {
+          // Any object returned will be saved in the `user` property of the JWT
+          return { id: "1", name: "Admin", email: "admin@example.com" };
         } else {
-          // User not found
+          // If you return null then an error will be displayed advising the user to check their details.
           return null;
         }
       }
     })
   ],
   pages: {
-    signIn: '/login',
+    signIn: '/login', // Custom login page
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET, // Required for security
 });
 
 export { handler as GET, handler as POST };
