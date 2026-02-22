@@ -4,7 +4,7 @@ import { useTransition } from 'react';
 import { completeCourse } from '../actions';
 import { useRouter } from 'next/navigation';
 
-export default function CompleteCourseButton({ unlocksLevel, currentLevel }) {
+export default function CompleteCourseButton({ unlocksLevel, currentLevel, isReady = true }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -17,7 +17,7 @@ export default function CompleteCourseButton({ unlocksLevel, currentLevel }) {
          await completeCourse(unlocksLevel);
          router.push('/'); // Send back to dashboard upon completing
       })}
-      disabled={isPending || isCompleted}
+      disabled={isPending || isCompleted || !isReady}
       className="submit-btn"
       style={{ width: '100%', marginTop: '2rem' }}
     >
@@ -25,7 +25,9 @@ export default function CompleteCourseButton({ unlocksLevel, currentLevel }) {
         ? 'Processing...' 
         : isCompleted 
           ? 'Course Completed ✅' 
-          : 'Complete Course & Level Up!'}
+          : !isReady 
+            ? 'Finish all simulations to unlock!'
+            : 'Complete Course & Level Up!'}
     </button>
   );
 }
