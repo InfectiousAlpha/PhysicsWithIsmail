@@ -1,4 +1,6 @@
 export { default } from "next-auth/middleware"
 
-// This line protects the entire site
-export const config = { matcher: ["/"] }
+// This matcher protects all routes EXCEPT login, api routes, and static Next.js assets
+export const config = { 
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login).*)"] 
+}
