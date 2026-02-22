@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --primary-blue: #0ea5e9; /* Sky blue */
+  --primary-blue: #0ea5e9;
   --dark-blue: #0284c7;
   --light-blue: #e0f2fe;
   --background: #ffffff;
@@ -127,4 +127,45 @@ body {
 .badge-gray {
   background: #e2e8f0;
   color: #64748b;
+}
+
+/* =========================================
+   SIMULATION STYLES 
+   ========================================= */
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+input[type=range].sim-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+input[type=range].sim-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #22c55e;
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+input[type=range].sim-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
 }
