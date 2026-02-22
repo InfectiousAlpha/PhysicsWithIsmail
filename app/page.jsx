@@ -31,7 +31,7 @@ export default async function Home() {
         <div>
           <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--dark-blue)'}}>Dashboard</h1>
           <p style={{marginTop: '5px', fontSize: '1.1rem', color: '#475569'}}>
-            Welcome back, {username} | <span style={{fontWeight: 'bold', color: 'var(--primary-blue)'}}>Level {level}</span>
+            Welcomee back, {username} | <span style={{fontWeight: 'bold', color: 'var(--primary-blue)'}}>Level {level}</span>
           </p>
         </div>
         <LogoutButton />
