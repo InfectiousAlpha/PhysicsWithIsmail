@@ -12,6 +12,7 @@ import SimulationCarousel from "../../components/SimulationCarousel";
 // Import refactored simulation directory structure
 import Course1Sim1 from "../../components/simulations/course1/sim1";
 import Course1Sim2 from "../../components/simulations/course1/sim2";
+import Course1Sim3 from "../../components/simulations/course1/sim3";
 import Course2Sim1 from "../../components/simulations/course2/sim1";
 import Course2Sim2 from "../../components/simulations/course2/sim2";
 import Course3Sim1 from "../../components/simulations/course3/sim1";
@@ -61,7 +62,8 @@ export default async function CoursePage({ params }) {
   if (courseId === '1') {
     courseSimulationsArray = [
       <Course1Sim1 key="c1-s1" simId="c1-sim1" />,
-      <Course1Sim2 key="c1-s2" simId="c1-sim2" />
+      <Course1Sim2 key="c1-s2" simId="c1-sim2" />,
+      <Course1Sim3 key="c1-s3" simId="c1-sim3" />
     ];
   } else if (courseId === '2') {
     courseSimulationsArray = [
