@@ -13,7 +13,6 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Attempt to sign in
     const result = await signIn('credentials', {
       username,
       password,
@@ -23,7 +22,7 @@ export default function LoginPage() {
     if (result.error) {
       setError('Invalid credentials');
     } else {
-      router.push('/'); // Redirect to home on success
+      router.push('/');
       router.refresh();
     }
   };
@@ -31,7 +30,9 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit} className="login-form">
-        <h2 style={{textAlign: 'center', marginBottom: '10px'}}>Admin Access</h2>
+        <h2 style={{textAlign: 'center', marginBottom: '10px', color: 'var(--dark-blue)', fontSize: '1.5rem', fontWeight: 'bold'}}>
+          Physics Academy
+        </h2>
         <input
           type="text"
           placeholder="Username"
@@ -47,7 +48,7 @@ export default function LoginPage() {
           className="input-field"
         />
         <button type="submit" className="submit-btn">Login</button>
-        {error && <p style={{color: 'red', textAlign: 'center'}}>{error}</p>}
+        {error && <p style={{color: '#ef4444', textAlign: 'center', fontSize: '0.9rem'}}>{error}</p>}
       </form>
     </div>
   );
