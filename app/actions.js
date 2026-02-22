@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 
-export async function incrementLevel() {
-  // 1. Verify the user is authenticated
+export async function completeCourse(unlocksLevel) {
+  // 1. Verify user is authenticated
   const session = await getServerSession(authOptions);
   if (!session?.user?.name) {
     throw new Error("Unauthorized");
@@ -14,7 +14,7 @@ export async function incrementLevel() {
 
   const username = session.user.name;
 
-  // 2. Ensure table exists (safe to run multiple times)
+  // 2. Ensure table exists
   await sql`
     CREATE TABLE IF NOT EXISTS user_levels (
       username VARCHAR(255) PRIMARY KEY,
@@ -22,15 +22,16 @@ export async function incrementLevel() {
     );
   `;
 
-  // 3. Upsert the user's level
-  // If user doesn't exist, insert with level 1. If they do, add 1.
+  // 3. Upsert user level. The GREATEST function ensures we only level UP, never down.
+  // It also prevents them from infinitely leveling up by clicking the same button.
   await sql`
     INSERT INTO user_levels (username, level)
-    VALUES (${username}, 1)
+    VALUES (${username}, ${unlocksLevel})
     ON CONFLICT (username)
-    DO UPDATE SET level = user_levels.level + 1;
+    DO UPDATE SET level = GREATEST(user_levels.level, EXCLUDED.level);
   `;
 
-  // 4. Tell Next.js to refresh the home page data to show the new level immediately
+  // 4. Refresh page data
   revalidatePath('/');
+  revalidatePath('/courses/[id]', 'page');
 }
