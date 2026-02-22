@@ -12,6 +12,10 @@ import SimRigid from "../../components/simulations/SimRigid";
 import SimMultiParticle from "../../components/simulations/SimMultiParticle";
 import SimRodApprox from "../../components/simulations/SimRodApprox";
 
+// Force dynamic rendering to prevent Next.js from trying to statically 
+// generate this page at build time without database/auth context.
+export const dynamic = "force-dynamic";
+
 export default async function CoursePage({ params }) {
   const session = await getServerSession(authOptions);
   const username = session?.user?.name;
