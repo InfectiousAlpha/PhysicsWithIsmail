@@ -1,20 +1,21 @@
-# PhysicsWithIsmail - Simple Auth App
+# Physics Academy - Course Learning Platform
 
-A minimal, secure web application built with Next.js 14 and NextAuth.js. This project demonstrates how to implement a custom Credentials-based authentication system with route protection using Next.js middleware.
+A secure, interactive web application built with Next.js 14, NextAuth.js, and Vercel Postgres. This project functions as a sequential course dashboard where users learn physics concepts and unlock new courses as they progress.
 
 ## ✨ Features
-* **Next.js 14 App Router:** Utilizes the latest Next.js features and app directory structure.
+* **Sequential Course Progression:** Users start at Level 0 and unlock subsequent courses sequentially by completing previous material.
+* **Next.js 14 App Router:** Utilizes the latest Next.js features, including Server Actions and the app directory structure.
 * **Custom Credentials Authentication:** Uses NextAuth.js to authenticate users against a securely stored environment variable.
-* **Route Protection:** Next.js middleware automatically redirects unauthenticated users from the protected dashboard (`/`) to the `/login` page.
-* **Session Management:** Built-in login and logout functionality with session persistence.
-* **Tailwind CSS Setup:** Ready for utility-first styling (base directives included).
-* **Responsive UI:** Clean, custom-styled login form and dashboard built with CSS flexbox.
+* **Route Protection:** Next.js middleware automatically redirects unauthenticated users from the dashboard and course pages to the `/login` page.
+* **Server-Side Data Persistence:** Uses `@vercel/postgres` to securely store and retrieve user progression levels.
+* **Responsive Modern UI:** Clean, custom-styled "Physics Academy" interface with a white and sky-blue theme.
 
 ## 🛠️ Tech Stack
 * **Framework:** Next.js (v14.1.0)
 * **Library:** React (v18)
 * **Authentication:** NextAuth.js (v4.24.5)
-* **Styling:** Custom CSS & Tailwind CSS
+* **Database:** Vercel Postgres
+* **Styling:** Custom CSS & Tailwind CSS base
 
 ## 🚀 Getting Started
 Follow these steps to set up the project locally on your machine.
@@ -22,21 +23,17 @@ Follow these steps to set up the project locally on your machine.
 ### Prerequisites
 * Node.js (v18.17 or higher recommended)
 * npm, yarn, or pnpm
+* A Vercel Postgres Database (or standard PostgreSQL database)
 
 ### 1. Clone and Install
 Clone the repository and install the required dependencies:
 
 ```bash
-# Clone the repository (replace with your repo URL if applicable)
-git clone <repository-url>
-cd PhysicsWithIsmail-main
-
-# Install dependencies
 npm install
 ```
 
 ### 2. Configure Environment Variables
-Create a `.env.local` file in the root directory of your project. The application requires specific environment variables to handle user credentials and session encryption securely.
+Create a `.env.local` file in the root directory of your project. The application requires specific environment variables to handle user credentials, session encryption, and database connections.
 
 Add the following to your `.env.local` file:
 
@@ -49,8 +46,16 @@ APP_USERS='[{"username": "admin", "password": "password123"}, {"username": "isma
 
 # NextAuth URL (Required for production, usually http://localhost:3000 for local dev)
 NEXTAUTH_URL="http://localhost:3000"
+
+# Vercel Postgres Connection (Get these from your Vercel Dashboard)
+POSTGRES_URL="postgres://default:xyz..."
+POSTGRES_PRISMA_URL="postgres://default:xyz..."
+POSTGRES_URL_NON_POOLING="postgres://default:xyz..."
+POSTGRES_USER="default"
+POSTGRES_HOST="ep-..."
+POSTGRES_PASSWORD="xyz"
+POSTGRES_DATABASE="verceldb"
 ```
-*Note: The `APP_USERS` variable must be a strictly valid JSON array of objects, containing `username` and `password` keys.*
 
 ### 3. Run the Development Server
 Start the Next.js development server:
@@ -64,27 +69,32 @@ Open [http://localhost:3000](http://localhost:3000) with your browser. If you ar
 
 ```text
 ├── app/
+│   ├── actions.js                      # Server actions (handles database level-ups via Postgres)
 │   ├── api/auth/[...nextauth]/route.js # NextAuth configuration & Credentials provider logic
 │   ├── components/                     # Reusable React components
-│   │   └── LogoutButton.jsx            # Client-side logout button component
+│   │   ├── CompleteCourseButton.jsx    # Client component to trigger course completion
+│   │   └── LogoutButton.jsx            # Client-side logout functionality
+│   ├── courses/
+│   │   └── [id]/page.jsx               # Dynamic course viewing page & access guardrails
+│   ├── lib/
+│   │   └── courses.js                  # Central list of course data & requirements
 │   ├── login/
 │   │   └── page.jsx                    # Login page UI and sign-in handling
-│   ├── globals.css                     # Global styles, Tailwind directives, and UI classes
+│   ├── globals.css                     # Global styles, theming, and UI classes
 │   ├── layout.jsx                      # Root HTML layout and metadata
-│   └── page.jsx                        # Protected home/dashboard page
-├── middleware.js                       # NextAuth middleware protecting the "/" route
-├── package.json                        # Project dependencies and scripts
-└── README.md                           # Project documentation
+│   └── page.jsx                        # Protected course dashboard
+├── middleware.js                       # NextAuth middleware protecting app routes
+└── package.json                        # Project dependencies and scripts
 ```
 
-## 🔒 Authentication Flow Explained
-* **Protection:** The `middleware.js` file is configured to match the `/` route. If a user visits the root page without a valid NextAuth session cookie, they are redirected to `/login`.
-* **Authorization:** When a user submits the login form in `app/login/page.jsx`, a call is made to the `signIn('credentials', ...)` NextAuth function.
-* **Validation:** The NextAuth route handler (`app/api/auth/[...nextauth]/route.js`) parses the `APP_USERS` environment variable and checks if the submitted username and password match any user in that JSON array.
-* **Session:** If matched, NextAuth generates a session, and the user is redirected to the protected dashboard (`/`).
+## 🔒 Course & Authentication Flow Explained
+* **Authentication:** When a user logs in via `app/login/page.jsx`, NextAuth validates credentials against the `APP_USERS` environment variable.
+* **Global Protection:** The `middleware.js` file prevents unauthorized access to the dashboard (`/`) and any internal courses (`/courses/...`).
+* **Progression Logic:** * The dashboard reads the central `courses.js` file and compares it to the user's current level pulled from Postgres.
+  * If the user's level meets a course's `requiredLevel`, they can enter.
+  * Clicking "Complete Course" triggers a Server Action (`actions.js`) that updates their level in Postgres using `GREATEST()` to ensure levels only go up, never down.
 
 ## 📝 Scripts
 * `npm run dev`: Starts the development server.
 * `npm run build`: Builds the app for production.
 * `npm run start`: Runs the built production application.
-* `npm run lint`: Runs ESLint to check for code issues.
