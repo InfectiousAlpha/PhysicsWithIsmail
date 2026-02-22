@@ -5,18 +5,11 @@ import { courses } from "../../lib/courses";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CompleteCourseButton from "../../components/CompleteCourseButton";
-
-// Import Carousel
 import SimulationCarousel from "../../components/SimulationCarousel";
 
-// Import refactored simulation directory structure
-import Course1Sim1 from "../../components/simulations/course1/sim1";
-import Course1Sim2 from "../../components/simulations/course1/sim2";
-import Course1Sim3 from "../../components/simulations/course1/sim3";
-import Course2Sim1 from "../../components/simulations/course2/sim1";
-import Course2Sim2 from "../../components/simulations/course2/sim2";
-import Course3Sim1 from "../../components/simulations/course3/sim1";
-import Course3Sim2 from "../../components/simulations/course3/sim2";
+// Import Node native modules for reading the file system
+import fs from "fs";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -55,27 +48,53 @@ export default async function CoursePage({ params }) {
     );
   }
 
-  // Assign multiple simulations depending on the course ID
-  // Pack them in an array so the SimulationCarousel can cycle through them
+  // ==========================================
+  // AUTOMATIC DYNAMIC SIMULATION LOADER
+  // ==========================================
   let courseSimulationsArray = [];
 
-  if (courseId === '1') {
-    courseSimulationsArray = [
-      <Course1Sim1 key="c1-s1" simId="c1-sim1" />,
-      <Course1Sim2 key="c1-s2" simId="c1-sim2" />,
-      <Course1Sim3 key="c1-s3" simId="c1-sim3" />
-    ];
-  } else if (courseId === '2') {
-    courseSimulationsArray = [
-      <Course2Sim1 key="c2-s1" simId="c2-sim1" />,
-      <Course2Sim2 key="c2-s2" simId="c2-sim2" />
-    ];
-  } else if (courseId === '3') {
-    courseSimulationsArray = [
-      <Course3Sim1 key="c3-s1" simId="c3-sim1" />,
-      <Course3Sim2 key="c3-s2" simId="c3-sim2" />
-    ];
+  try {
+    // 1. Build the path to the course's simulation folder
+    const simDirectory = path.join(process.cwd(), 'app', 'components', 'simulations', `course${courseId}`);
+
+    // 2. Check if the directory actually exists
+    if (fs.existsSync(simDirectory)) {
+      
+      // 3. Read all files inside the directory
+      const files = fs.readdirSync(simDirectory);
+
+      // 4. Filter for React components and sort them numerically
+      const simFiles = files
+        .filter(file => file.endsWith('.jsx') || file.endsWith('.js'))
+        .sort((a, b) => {
+          // Extracts numbers from filename (e.g., "sim10.jsx" -> 10) for correct sorting
+          const numA = parseInt(a.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.replace(/\D/g, '')) || 0;
+          return numA - numB;
+        });
+
+      // 5. Dynamically await and import each simulation module
+      courseSimulationsArray = await Promise.all(
+        simFiles.map(async (file) => {
+          const compName = file.replace(/\.[^/.]+$/, ""); // Removes .jsx/.js extension
+          
+          // Dynamically import the component module
+          const mod = await import(`../../components/simulations/course${courseId}/${compName}`);
+          const SimComponent = mod.default;
+
+          return (
+            <SimComponent 
+              key={`c${courseId}-${compName}`} 
+              simId={`c${courseId}-${compName}`} 
+            />
+          );
+        })
+      );
+    }
+  } catch (error) {
+    console.error(`Error loading simulations for course ${courseId}:`, error);
   }
+  // ==========================================
 
   return (
     <div className="content-container" style={{maxWidth: '1000px'}}>
@@ -97,9 +116,11 @@ export default async function CoursePage({ params }) {
           <p>Please complete all the interactive physics laboratories below to finish this section.</p>
         </div>
 
-        {/* Load the new Simulation Carousel Component */}
-        {courseSimulationsArray.length > 0 && (
+        {/* The Carousel works exactly the same! */}
+        {courseSimulationsArray.length > 0 ? (
           <SimulationCarousel simulations={courseSimulationsArray} />
+        ) : (
+          <p style={{marginTop: '2rem', color: '#64748b', textAlign: 'center'}}>No simulations found for this course yet.</p>
         )}
 
         <CompleteCourseButton unlocksLevel={course.unlocksLevel} currentLevel={currentLevel} />
