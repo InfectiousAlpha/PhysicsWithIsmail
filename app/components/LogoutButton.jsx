@@ -7,7 +7,7 @@ export default function LogoutButton() {
     <button 
       onClick={() => signOut({ callbackUrl: '/login' })} 
       className="submit-btn"
-      style={{marginTop: '2rem', backgroundColor: '#dc2626'}}
+      style={{ backgroundColor: '#ef4444', width: 'auto', padding: '0.5rem 1rem' }}
     >
       Log Out
     </button>
