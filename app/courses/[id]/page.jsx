@@ -4,8 +4,8 @@ import { sql } from "@vercel/postgres";
 import { courses } from "../../lib/courses";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import CompleteCourseButton from "../../components/CompleteCourseButton";
 import SimulationCarousel from "../../components/SimulationCarousel";
+import CompleteCourseButton from "../../components/CompleteCourseButton";
 
 // Import Node native modules for reading the file system
 import fs from "fs";
@@ -116,14 +116,19 @@ export default async function CoursePage({ params }) {
           <p>Please complete all the interactive physics laboratories below to finish this section.</p>
         </div>
 
-        {/* The Carousel works exactly the same! */}
         {courseSimulationsArray.length > 0 ? (
-          <SimulationCarousel simulations={courseSimulationsArray} />
+          <SimulationCarousel 
+            simulations={courseSimulationsArray} 
+            unlocksLevel={course.unlocksLevel} 
+            currentLevel={currentLevel} 
+          />
         ) : (
-          <p style={{marginTop: '2rem', color: '#64748b', textAlign: 'center'}}>No simulations found for this course yet.</p>
+          <>
+            <p style={{marginTop: '2rem', color: '#64748b', textAlign: 'center'}}>No simulations found for this course yet.</p>
+            {/* Fallback rendering button if the course has zero simulations so they can still complete it */}
+            <CompleteCourseButton unlocksLevel={course.unlocksLevel} currentLevel={currentLevel} isReady={true} />
+          </>
         )}
-
-        <CompleteCourseButton unlocksLevel={course.unlocksLevel} currentLevel={currentLevel} />
       </div>
     </div>
   );
