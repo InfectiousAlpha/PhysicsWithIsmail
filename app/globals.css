@@ -19,6 +19,22 @@ body {
   font-family: sans-serif;
 }
 
+/* =========================================
+   FULLSCREEN STYLES 
+   ========================================= */
+.sim-fullscreen-wrapper:fullscreen {
+  background-color: #0f172a;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Fallback for webkit */
+.sim-fullscreen-wrapper:-webkit-full-screen {
+  background-color: #0f172a;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
 .login-container {
   display: flex;
   flex-direction: column;
