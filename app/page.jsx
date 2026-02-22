@@ -1,18 +1,17 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 import LogoutButton from "./components/LogoutButton";
-import LevelButton from "./components/LevelButton";
 import { sql } from "@vercel/postgres";
+import { courses } from "./lib/courses";
+import Link from "next/link";
 
 export default async function Home() {
-  // Fetch the session on the server
   const session = await getServerSession(authOptions);
   const username = session?.user?.name;
 
   let level = 0;
 
   if (username) {
-    // 1. Ensure the table exists before querying
     await sql`
       CREATE TABLE IF NOT EXISTS user_levels (
         username VARCHAR(255) PRIMARY KEY,
@@ -20,7 +19,6 @@ export default async function Home() {
       );
     `;
 
-    // 2. Fetch the current level for this user from Postgres
     const { rows } = await sql`SELECT level FROM user_levels WHERE username = ${username}`;
     if (rows.length > 0) {
       level = rows[0].level;
@@ -29,22 +27,57 @@ export default async function Home() {
 
   return (
     <div className="content-container">
-      <h1 style={{fontSize: '4rem', fontWeight: 'bold'}}>you login</h1>
-      
-      {/* Display the username from the session */}
-      <p style={{marginTop: '20px', fontSize: '1.2rem'}}>Welcome back {username}.</p>
-      
-      {/* Display the persistent level from Neon Postgres */}
-      <p style={{marginTop: '10px', fontSize: '1.5rem', fontWeight: 'bold', color: '#0070f3'}}>
-        Current Level: {level}
-      </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginTop: '20px' }}>
-        {/* The new Server Action button */}
-        <LevelButton />
-
-        {/* Use the existing client-side logout button component */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--dark-blue)'}}>Dashboard</h1>
+          <p style={{marginTop: '5px', fontSize: '1.1rem', color: '#475569'}}>
+            Welcome back, {username} | <span style={{fontWeight: 'bold', color: 'var(--primary-blue)'}}>Level {level}</span>
+          </p>
+        </div>
         <LogoutButton />
+      </div>
+
+      <h2 style={{fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem'}}>Your Courses</h2>
+      
+      <div className="course-grid">
+        {courses.map((course) => {
+          const isLocked = level < course.requiredLevel;
+          const isCompleted = level >= course.unlocksLevel;
+
+          const CardContent = (
+            <div className={`course-card ${isLocked ? 'locked' : ''}`}>
+              <div className={`badge ${isLocked ? 'badge-gray' : 'badge-blue'}`}>
+                {isLocked ? `Requires Level ${course.requiredLevel}` : isCompleted ? 'Completed' : 'Unlocked'}
+              </div>
+              <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', color: isLocked ? '#64748b' : 'var(--text-main)'}}>
+                {course.title}
+              </h3>
+              <p style={{color: '#64748b', lineHeight: '1.5', flexGrow: 1}}>
+                {course.description}
+              </p>
+              
+              <div style={{marginTop: '1.5rem'}}>
+                {isLocked ? (
+                  <div style={{color: '#94a3b8', fontWeight: '500', textAlign: 'center'}}>Locked 🔒</div>
+                ) : (
+                  <div style={{color: 'var(--primary-blue)', fontWeight: 'bold', textAlign: 'center'}}>
+                    {isCompleted ? 'Review Course →' : 'Start Course →'}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+
+          if (isLocked) {
+            return <div key={course.id}>{CardContent}</div>; // Non-clickable if locked
+          }
+
+          return (
+            <Link key={course.id} href={`/courses/${course.id}`} style={{textDecoration: 'none'}}>
+              {CardContent}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
