@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import CompleteCourseButton from './CompleteCourseButton';
 
-export default function SimulationCarousel({ simulations, unlocksLevel, currentLevel }) {
+export default function SimulationCarousel({ simulations, unlocksLevel, currentLevel, courseId, category }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const wrapperRef = useRef(null);
@@ -117,9 +117,11 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
         </div>
       </div>
 
-      {/* Completion Button - Stays at bottom of the standard page */}
+      {/* Completion Button - Now receiving courseId and category correctly */}
       <div>
         <CompleteCourseButton 
+          courseId={courseId}
+          category={category}
           unlocksLevel={unlocksLevel} 
           currentLevel={currentLevel} 
           isReady={isLastSim} 
