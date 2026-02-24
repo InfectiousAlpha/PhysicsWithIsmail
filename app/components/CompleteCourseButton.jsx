@@ -4,7 +4,7 @@ import { useTransition } from 'react';
 import { completeCourse } from '../actions';
 import { useRouter } from 'next/navigation';
 
-export default function CompleteCourseButton({ courseId, category, unlocksLevel, currentLevel, isReady = true }) {
+export default function CompleteCourseButton({ courseId, category, unlocksLevel, currentLevel, isReady = true, finalScore = 100 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -14,12 +14,11 @@ export default function CompleteCourseButton({ courseId, category, unlocksLevel,
 
   const handleComplete = () => {
     startTransition(async () => {
-      // Generate a simulated score between 75 and 100
-      // In a real scenario, this score could be calculated based on simulation performance
-      const generatedScore = Math.floor(Math.random() * 26) + 75;
+      // Save the exact final score passed from the simulations
+      await completeCourse(courseId, unlocksLevel, category, finalScore);
       
-      await completeCourse(courseId, unlocksLevel, category, generatedScore);
-      router.push('/'); // Send back to dashboard upon completing
+      // Redirect to the dashboard and ensure the correct tab is active
+      router.push(`/?tab=${category}`); 
     });
   };
 
