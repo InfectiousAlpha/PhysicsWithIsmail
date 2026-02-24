@@ -37,14 +37,24 @@ export default async function Home() {
       );
     `;
 
-    // 2. Fetch Levels
+    // 2. Initialize scores to 0 for ALL existing courses (won't overwrite if score already exists)
+    // This adapts dynamically to any new courses you add to courses.js
+    for (const course of courses) {
+      await sql`
+        INSERT INTO user_course_scores (username, course_id, score)
+        VALUES (${username}, ${course.id}, 0)
+        ON CONFLICT (username, course_id) DO NOTHING;
+      `;
+    }
+
+    // 3. Fetch Levels
     const { rows: levelRows } = await sql`SELECT physics_level, math_level FROM user_levels WHERE username = ${username}`;
     if (levelRows.length > 0) {
       levels.physics = levelRows[0].physics_level || 0;
       levels.math = levelRows[0].math_level || 0;
     }
 
-    // 3. Fetch Course Scores
+    // 4. Fetch Course Scores
     const { rows: scoreRows } = await sql`SELECT course_id, score FROM user_course_scores WHERE username = ${username}`;
     scoreRows.forEach(row => {
       scores[row.course_id] = row.score;
