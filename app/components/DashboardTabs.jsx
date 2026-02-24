@@ -1,10 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function DashboardTabs({ courses, levels, scores }) {
   const [activeTab, setActiveTab] = useState('physics');
+
+  // Read the URL parameter to set the active tab (e.g., ?tab=math)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'math' || tabParam === 'physics') {
+      setActiveTab(tabParam);
+    }
+  }, []);
 
   // Filter courses based on the active tab
   const filteredCourses = courses.filter(course => course.category === activeTab);
