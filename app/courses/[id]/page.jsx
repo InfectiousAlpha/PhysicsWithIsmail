@@ -29,18 +29,24 @@ export default async function CoursePage({ params }) {
   }
 
   // Fetch user level to verify access
-  let currentLevel = 0;
-  const { rows } = await sql`SELECT level FROM user_levels WHERE username = ${username}`;
+  let physicsLevel = 0;
+  let mathLevel = 0;
+  
+  const { rows } = await sql`SELECT physics_level, math_level FROM user_levels WHERE username = ${username}`;
   if (rows.length > 0) {
-    currentLevel = rows[0].level;
+    physicsLevel = rows[0].physics_level || 0;
+    mathLevel = rows[0].math_level || 0;
   }
+
+  // Determine correct level based on course category
+  const currentLevel = course.category === 'math' ? mathLevel : physicsLevel;
 
   // Server-side lock protection
   if (currentLevel < course.requiredLevel) {
     return (
       <div className="content-container" style={{textAlign: 'center'}}>
         <h1 style={{fontSize: '2rem', color: '#ef4444', marginBottom: '1rem'}}>Access Denied 🛑</h1>
-        <p>You need to be Level {course.requiredLevel} to access this course.</p>
+        <p>You need to be {course.category === 'math' ? 'Math' : 'Physics'} Level {course.requiredLevel} to access this course.</p>
         <Link href="/" style={{color: 'var(--primary-blue)', marginTop: '2rem', display: 'inline-block'}}>
           ← Back to Dashboard
         </Link>
@@ -54,31 +60,22 @@ export default async function CoursePage({ params }) {
   let courseSimulationsArray = [];
 
   try {
-    // 1. Build the path to the course's simulation folder
     const simDirectory = path.join(process.cwd(), 'app', 'components', 'simulations', `course${courseId}`);
 
-    // 2. Check if the directory actually exists
     if (fs.existsSync(simDirectory)) {
-      
-      // 3. Read all files inside the directory
       const files = fs.readdirSync(simDirectory);
 
-      // 4. Filter for React components and sort them numerically
       const simFiles = files
         .filter(file => file.endsWith('.jsx') || file.endsWith('.js'))
         .sort((a, b) => {
-          // Extracts numbers from filename (e.g., "sim10.jsx" -> 10) for correct sorting
           const numA = parseInt(a.replace(/\D/g, '')) || 0;
           const numB = parseInt(b.replace(/\D/g, '')) || 0;
           return numA - numB;
         });
 
-      // 5. Dynamically await and import each simulation module
       courseSimulationsArray = await Promise.all(
         simFiles.map(async (file) => {
-          const compName = file.replace(/\.[^/.]+$/, ""); // Removes .jsx/.js extension
-          
-          // Dynamically import the component module
+          const compName = file.replace(/\.[^/.]+$/, ""); 
           const mod = await import(`../../components/simulations/course${courseId}/${compName}`);
           const SimComponent = mod.default;
 
@@ -103,7 +100,10 @@ export default async function CoursePage({ params }) {
       </Link>
 
       <div style={{marginTop: '2rem', background: 'white', padding: '3rem', borderRadius: '12px', border: '1px solid var(--light-blue)'}}>
-        <div className="badge badge-blue">Course Content</div>
+        <div className={`badge ${course.category === 'math' ? 'bg-emerald-100 text-emerald-700' : 'badge-blue'}`}>
+          {course.category === 'math' ? 'Mathematics Course' : 'Physics Course'}
+        </div>
+        
         <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', margin: '1rem 0', color: 'var(--dark-blue)'}}>
           {course.title}
         </h1>
@@ -111,9 +111,9 @@ export default async function CoursePage({ params }) {
           {course.description}
         </p>
         
-        <div style={{marginTop: '2.5rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary-blue)'}}>
+        <div style={{marginTop: '2.5rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${course.category === 'math' ? '#10b981' : 'var(--primary-blue)'}`}}>
           <h3 style={{fontWeight: 'bold', marginBottom: '0.5rem'}}>Lesson Material</h3>
-          <p>Please complete all the interactive physics laboratories below to finish this section.</p>
+          <p>Please complete all the interactive laboratories below to finish this section.</p>
         </div>
 
         {courseSimulationsArray.length > 0 ? (
@@ -121,12 +121,19 @@ export default async function CoursePage({ params }) {
             simulations={courseSimulationsArray} 
             unlocksLevel={course.unlocksLevel} 
             currentLevel={currentLevel} 
+            courseId={course.id}
+            category={course.category}
           />
         ) : (
           <>
             <p style={{marginTop: '2rem', color: '#64748b', textAlign: 'center'}}>No simulations found for this course yet.</p>
-            {/* Fallback rendering button if the course has zero simulations so they can still complete it */}
-            <CompleteCourseButton unlocksLevel={course.unlocksLevel} currentLevel={currentLevel} isReady={true} />
+            <CompleteCourseButton 
+              courseId={course.id} 
+              category={course.category} 
+              unlocksLevel={course.unlocksLevel} 
+              currentLevel={currentLevel} 
+              isReady={true} 
+            />
           </>
         )}
       </div>
