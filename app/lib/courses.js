@@ -30,7 +30,7 @@ export const courses = [
     id: 'm1',
     title: 'Math 1: Basic Arithmetic',
     description: 'Master addition and subtraction with our interactive calculator.',
-    requiredLevel: 0, // Open for now as requested
+    requiredLevel: 0, 
     unlocksLevel: 1,
     category: 'math'
   },
@@ -38,24 +38,24 @@ export const courses = [
     id: 'm2',
     title: 'Math 2: Multiplication & Division',
     description: 'Learn how to multiply and divide numbers efficiently.',
-    requiredLevel: 0,
-    unlocksLevel: 1,
+    requiredLevel: 1,
+    unlocksLevel: 2,
     category: 'math'
   },
   {
     id: 'm3',
     title: 'Math 3: Fractions & Decimals',
     description: 'Understanding parts of a whole and decimal placements.',
-    requiredLevel: 0,
-    unlocksLevel: 1,
+    requiredLevel: 2,
+    unlocksLevel: 3,
     category: 'math'
   },
   {
     id: 'm4',
     title: 'Math 4: Pre-Algebra',
     description: 'Introduction to order of operations and simple calculations.',
-    requiredLevel: 0,
-    unlocksLevel: 1,
+    requiredLevel: 3,
+    unlocksLevel: 4,
     category: 'math'
   }
 ];
