@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function DashboardTabs({ courses, level }) {
+export default function DashboardTabs({ courses, levels, scores }) {
   const [activeTab, setActiveTab] = useState('physics');
 
   // Filter courses based on the active tab
   const filteredCourses = courses.filter(course => course.category === activeTab);
+  
+  // Use the specific level for the active category
+  const currentLevel = levels[activeTab] || 0;
 
   return (
     <div>
@@ -42,17 +45,29 @@ export default function DashboardTabs({ courses, level }) {
       {/* Course Grid */}
       <div className="course-grid">
         {filteredCourses.map((course) => {
-          const isLocked = level < course.requiredLevel;
-          const isCompleted = level >= course.unlocksLevel;
+          const isLocked = currentLevel < course.requiredLevel;
+          const isCompleted = currentLevel >= course.unlocksLevel;
+          const courseScore = scores[course.id]; // Get dynamic score
           
           // Math gets a green theme, Physics gets blue
           const themeColor = activeTab === 'physics' ? 'var(--primary-blue)' : '#10b981'; 
 
           const CardContent = (
-            <div className={`course-card ${isLocked ? 'locked' : ''} ${activeTab === 'math' && !isLocked ? 'hover:border-emerald-500' : ''}`}>
-              <div className={`badge ${isLocked ? 'badge-gray' : activeTab === 'physics' ? 'badge-blue' : 'bg-emerald-100 text-emerald-700'}`}>
-                {isLocked ? `Requires Level ${course.requiredLevel}` : isCompleted ? 'Completed' : 'Unlocked'}
+            <div className={`course-card relative ${isLocked ? 'locked' : ''} ${activeTab === 'math' && !isLocked ? 'hover:border-emerald-500' : ''}`}>
+              
+              <div className="flex justify-between items-start mb-2">
+                <div className={`badge ${isLocked ? 'badge-gray' : activeTab === 'physics' ? 'badge-blue' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {isLocked ? `Requires Level ${course.requiredLevel}` : isCompleted ? 'Completed' : 'Unlocked'}
+                </div>
+                
+                {/* Score Display */}
+                {!isLocked && courseScore !== undefined && (
+                  <div className="text-sm font-bold bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
+                    Score: <span style={{color: themeColor}}>{courseScore}/100</span>
+                  </div>
+                )}
               </div>
+
               <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', color: isLocked ? '#64748b' : 'var(--text-main)'}}>
                 {course.title}
               </h3>
