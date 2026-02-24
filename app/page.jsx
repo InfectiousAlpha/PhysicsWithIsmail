@@ -9,20 +9,46 @@ export default async function Home() {
   const session = await getServerSession(authOptions);
   const username = session?.user?.name;
 
-  let level = 0;
+  let levels = { physics: 0, math: 0 };
+  let scores = {};
 
   if (username) {
+    // 1. Ensure tables and new columns exist
     await sql`
       CREATE TABLE IF NOT EXISTS user_levels (
         username VARCHAR(255) PRIMARY KEY,
         level INT DEFAULT 0
       );
     `;
+    
+    // Safely add new columns if they don't exist yet
+    try { await sql`ALTER TABLE user_levels ADD COLUMN IF NOT EXISTS physics_level INT DEFAULT 0;`; } catch(e){}
+    try { await sql`ALTER TABLE user_levels ADD COLUMN IF NOT EXISTS math_level INT DEFAULT 0;`; } catch(e){}
+    
+    // Migrate old 'level' to 'physics_level' for existing users
+    await sql`UPDATE user_levels SET physics_level = level WHERE physics_level = 0 AND level > 0;`;
 
-    const { rows } = await sql`SELECT level FROM user_levels WHERE username = ${username}`;
-    if (rows.length > 0) {
-      level = rows[0].level;
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_course_scores (
+        username VARCHAR(255),
+        course_id VARCHAR(50),
+        score INT DEFAULT 0,
+        PRIMARY KEY (username, course_id)
+      );
+    `;
+
+    // 2. Fetch Levels
+    const { rows: levelRows } = await sql`SELECT physics_level, math_level FROM user_levels WHERE username = ${username}`;
+    if (levelRows.length > 0) {
+      levels.physics = levelRows[0].physics_level || 0;
+      levels.math = levelRows[0].math_level || 0;
     }
+
+    // 3. Fetch Course Scores
+    const { rows: scoreRows } = await sql`SELECT course_id, score FROM user_course_scores WHERE username = ${username}`;
+    scoreRows.forEach(row => {
+      scores[row.course_id] = row.score;
+    });
   }
 
   return (
@@ -31,14 +57,20 @@ export default async function Home() {
         <div>
           <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--dark-blue)'}}>Dashboard</h1>
           <p style={{marginTop: '5px', fontSize: '1.1rem', color: '#475569'}}>
-            Welcome back, {username} | <span style={{fontWeight: 'bold', color: 'var(--primary-blue)'}}>Level {level}</span>
+            Welcome back, {username} 
+            <span style={{marginLeft: '10px', fontSize: '0.9rem'}} className="badge badge-blue">
+              Physics Lv.{levels.physics}
+            </span>
+            <span style={{marginLeft: '5px', fontSize: '0.9rem', background: '#d1fae5', color: '#047857'}} className="badge">
+              Math Lv.{levels.math}
+            </span>
           </p>
         </div>
         <LogoutButton />
       </div>
 
       {/* Render the client-side seamless tabs component */}
-      <DashboardTabs courses={courses} level={level} />
+      <DashboardTabs courses={courses} levels={levels} scores={scores} />
     </div>
   );
 }
