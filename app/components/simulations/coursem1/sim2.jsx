@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-export default function CourseM1Sim2({ simId, onScoreUpdate }) {
+export default function CourseM1Sim2({ simId, onScoreUpdate, onComplete }) {
   const [questions, setQuestions] = useState([]);
   const [qIndex, setQIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
@@ -63,7 +63,7 @@ export default function CourseM1Sim2({ simId, onScoreUpdate }) {
       const endTime = Date.now();
       const elapsedSeconds = (endTime - startTime) / 1000;
       
-      // Multiplier logic: 1 / (time segment). 0-29.9s = 1, 30-59.9s = 2, etc.
+      // Multiplier logic: 1 / (time segment). 0-29.9s = 1, 30-59.9s = 1/2, etc.
       const timeSegment = Math.floor(elapsedSeconds / 30) + 1;
       const multiplier = 1 / timeSegment;
       
@@ -80,6 +80,11 @@ export default function CourseM1Sim2({ simId, onScoreUpdate }) {
 
       if (onScoreUpdate) {
         onScoreUpdate(finalScore);
+      }
+      
+      // Tell the Carousel that this simulation is finished so it unlocks the Next button
+      if (onComplete) {
+        onComplete();
       }
     }
   };
