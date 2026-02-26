@@ -2,16 +2,21 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import CompleteCourseButton from './CompleteCourseButton';
-import { simulationNames } from '../lib/simulationNames';
+import { simulationData } from '../lib/simulationData';
 
-export default function SimulationCarousel({ simulations, unlocksLevel, currentLevel, courseId, category }) {
+export default function SimulationCarousel({ simulations, unlocksLevel, currentLevel, courseId, category, coursePassingGrade = 0 }) {
   // Navigation phases: 'intro', 'sims', 'summary'
   const [step, setStep] = useState('intro');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // Array to hold scores for each simulation (defaults to 100)
+  // Track scores for each simulation (defaults to 100)
   const [scores, setScores] = useState(Array(simulations?.length || 0).fill(100));
+  
+  // Track completion state to unlock the "Next" button. Auto-completes if simulationData says so.
+  const [isSimComplete, setIsSimComplete] = useState(() => 
+    simulations?.map(sim => simulationData[sim.props.simId]?.autoComplete ?? true) || []
+  );
   
   const wrapperRef = useRef(null);
 
@@ -22,6 +27,15 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
     setScores(prev => {
       const updated = [...prev];
       updated[index] = newScore;
+      return updated;
+    });
+  };
+
+  // Handler for simulations to signal they are "finished" and the user can proceed
+  const handleSimComplete = (index) => {
+    setIsSimComplete(prev => {
+      const updated = [...prev];
+      updated[index] = true;
       return updated;
     });
   };
@@ -99,15 +113,38 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
           )}
         </button>
       </div>
+
+      {/* Course Requirements Block */}
+      <div className="bg-slate-800/80 p-5 rounded-xl border border-slate-600 mb-6 shadow-inner">
+        <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Requirements to Pass
+        </h4>
+        <ul className="text-slate-300 space-y-2 text-sm">
+          <li className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Achieve a Mean Course Score of at least: <span className="text-emerald-400 font-bold px-2 py-0.5 bg-slate-900 rounded">{coursePassingGrade} pts</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+            Meet or exceed the minimum passing grade for every individual module below.
+          </li>
+        </ul>
+      </div>
       
       <ul className="list-disc list-inside mb-8 space-y-3 text-slate-200 flex-grow">
         {simulations.map((sim, i) => {
           const simId = sim.props.simId;
-          const simName = simulationNames[simId] || `Interactive Laboratory ${i + 1}`;
+          const simInfo = simulationData[simId] || { name: `Interactive Laboratory ${i + 1}`, passingGrade: 0 };
           return (
             <li key={i} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex justify-between items-center shadow-sm">
-              <span className="font-semibold text-lg">{simName}</span>
-              <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-md border border-slate-700">Modul {i + 1}</span>
+              <span className="font-semibold text-lg">{simInfo.name}</span>
+              <div className="flex gap-3 items-center">
+                {simInfo.passingGrade > 0 && (
+                  <span className="text-xs text-amber-400 border border-amber-400/50 bg-amber-400/10 px-2 py-1 rounded font-bold">Passing Grade: {simInfo.passingGrade}</span>
+                )}
+                <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-md border border-slate-700">Modul {i + 1}</span>
+              </div>
             </li>
           );
         })}
@@ -129,11 +166,13 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
   // =====================================
   const renderSims = () => {
     const currentSimWithProps = React.cloneElement(simulations[currentIndex], {
-      onScoreUpdate: (newScore) => handleScoreUpdate(currentIndex, newScore)
+      onScoreUpdate: (newScore) => handleScoreUpdate(currentIndex, newScore),
+      onComplete: () => handleSimComplete(currentIndex)
     });
 
     const currentSimId = simulations[currentIndex].props.simId;
-    const currentSimName = simulationNames[currentSimId] || `Interactive Laboratory`;
+    const currentSimInfo = simulationData[currentSimId] || { name: `Interactive Laboratory` };
+    const currentSimComplete = isSimComplete[currentIndex];
 
     return (
       <div className={`flex flex-col gap-6 flex-grow h-full ${!isFullscreen ? 'mt-8' : ''}`}>
@@ -155,9 +194,9 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
             ← Previous
           </button>
           
-          <div className="text-center px-4">
+          <div className="text-center px-4 flex-grow">
             <span className={`block text-xs font-bold uppercase tracking-wider mb-1 ${isFullscreen ? 'text-slate-400' : 'text-slate-500'}`}>
-              {currentSimName}
+              {currentSimInfo.name}
             </span>
             <span className={`font-semibold flex items-center justify-center gap-2 ${isFullscreen ? 'text-white' : 'text-slate-800'}`}>
               Modul {currentIndex + 1} of {simulations.length}
@@ -182,10 +221,13 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
 
           <button
             onClick={handleNext}
+            disabled={!currentSimComplete}
             className={`px-5 py-2.5 rounded-lg font-bold transition-colors ${
-              category === 'math' && isLastSim
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                : 'bg-[var(--primary-blue)] text-white hover:bg-[var(--dark-blue)] shadow-md shadow-blue-500/20'
+              !currentSimComplete
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : category === 'math' && isLastSim
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'bg-[var(--primary-blue)] text-white hover:bg-[var(--dark-blue)] shadow-md shadow-blue-500/20'
             }`}
           >
             {isLastSim ? 'Finish →' : 'Next →'}
@@ -206,8 +248,17 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
   const renderSummary = () => {
     const meanScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     
+    // Check if the user failed ANY individual module
+    const failedModules = simulations.some((sim, i) => {
+      const simInfo = simulationData[sim.props.simId] || { passingGrade: 0 };
+      return scores[i] < simInfo.passingGrade;
+    });
+
+    // Determine final Pass/Fail state for the entire course
+    const isCourseFailed = failedModules || meanScore < coursePassingGrade;
+    
     return (
-      <div className={`glass-panel p-8 rounded-2xl border-l-4 border-l-purple-500 overflow-hidden text-white flex-grow flex flex-col ${!isFullscreen ? 'mt-8' : ''}`}>
+      <div className={`glass-panel p-8 rounded-2xl border-l-4 overflow-hidden text-white flex-grow flex flex-col ${!isFullscreen ? 'mt-8' : ''} ${isCourseFailed ? 'border-l-red-500' : 'border-l-emerald-500'}`}>
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-3xl font-bold">Course Report</h3>
@@ -227,23 +278,49 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
           </button>
         </div>
         
-        <div className="space-y-3 mb-8 flex-grow">
+        <div className="space-y-3 mb-6 flex-grow">
           {simulations.map((sim, i) => {
             const simId = sim.props.simId;
-            const simName = simulationNames[simId] || `Interactive Laboratory ${i + 1}`;
+            const simInfo = simulationData[simId] || { name: `Interactive Laboratory ${i + 1}`, passingGrade: 0 };
+            const didPassSim = scores[i] >= simInfo.passingGrade;
+
             return (
-              <div key={i} className="flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border border-slate-700 shadow-sm">
-                <span className="font-semibold">{simName}</span>
-                <span className="text-emerald-400 font-mono font-bold text-lg">{scores[i]} pts</span>
+              <div key={i} className={`flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border ${didPassSim ? 'border-slate-700' : 'border-red-500/50'} shadow-sm`}>
+                <div>
+                  <span className="font-semibold block">{simInfo.name}</span>
+                  {simInfo.passingGrade > 0 && <span className="text-xs text-slate-400">Target Grade: {simInfo.passingGrade}</span>}
+                </div>
+                <div className="text-right">
+                  <span className={`font-mono font-bold text-lg ${didPassSim ? 'text-emerald-400' : 'text-red-400'}`}>{scores[i]} pts</span>
+                  {!didPassSim && <span className="block text-xs font-bold text-red-400">Failed</span>}
+                </div>
               </div>
             );
           })}
           
           <div className="flex justify-between items-center bg-slate-700 p-5 rounded-xl border border-slate-500 mt-6 shadow-lg">
-            <span className="font-bold text-xl text-white uppercase tracking-wider">Mean Final Score</span>
-            <span className="text-white font-mono font-bold text-3xl">{meanScore} pts</span>
+            <div>
+              <span className="font-bold text-xl text-white uppercase tracking-wider block">Mean Final Score</span>
+              <span className="text-xs text-slate-300">Course Passing Grade: {coursePassingGrade}</span>
+            </div>
+            <div className="text-right">
+              <span className={`font-mono font-bold text-3xl ${meanScore >= coursePassingGrade ? 'text-white' : 'text-red-400'}`}>{meanScore} pts</span>
+            </div>
           </div>
         </div>
+
+        {/* Clear feedback box */}
+        {isCourseFailed ? (
+          <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-center mb-6">
+            <p className="text-red-400 font-bold text-lg mb-1">Course Failed</p>
+            <p className="text-red-300 text-sm">You did not meet the required passing grades. You can save your score now, but you will <strong className="text-white">not level up</strong> until you pass.</p>
+          </div>
+        ) : (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-center mb-6">
+            <p className="text-emerald-400 font-bold text-lg mb-1">Course Passed! 🎉</p>
+            <p className="text-emerald-300 text-sm">Great job! You met all the requirements. Saving this score will unlock the next level.</p>
+          </div>
+        )}
 
         <CompleteCourseButton 
           courseId={courseId}
@@ -252,13 +329,12 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
           currentLevel={currentLevel} 
           isReady={true}
           finalScore={meanScore}
+          hasPassed={!isCourseFailed} // Passes this state down to the action!
         />
       </div>
     );
   };
 
-  // We place the wrapperRef at the very root so that the entire carousel 
-  // (Intro -> Sims -> Summary) stays within the fullscreen context.
   return (
     <div ref={wrapperRef} className="sim-fullscreen-wrapper transition-all duration-300 flex flex-col w-full min-h-full">
       {step === 'intro' && renderIntro()}
