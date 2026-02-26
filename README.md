@@ -1,23 +1,27 @@
-# Physics Academy - Course Learning Platform
+# ⚛️ Physics & Math Academy
 
-A secure, interactive web application built with Next.js 14, NextAuth.js, and Vercel Postgres. This project functions as a sequential course dashboard where users learn physics concepts and unlock new courses as they progress.
+An interactive, secure, and sequential learning platform built with Next.js 14. This application features a gamified course dashboard where students learn physics and mathematics concepts through rich HTML5 Canvas simulations and interactive React components, unlocking new levels and tracking high scores as they progress.
 
-## ✨ Features
-* **Sequential Course Progression:** Users start at Level 0 and unlock subsequent courses sequentially by completing previous material.
-* **Next.js 14 App Router:** Utilizes the latest Next.js features, including Server Actions and the app directory structure.
-* **Custom Credentials Authentication:** Uses NextAuth.js to authenticate users against a securely stored environment variable.
-* **Route Protection:** Next.js middleware automatically redirects unauthenticated users from the dashboard and course pages to the `/login` page.
-* **Server-Side Data Persistence:** Uses `@vercel/postgres` to securely store and retrieve user progression levels.
-* **Responsive Modern UI:** Clean, custom-styled "Physics Academy" interface with a white and sky-blue theme.
+## ✨ Key Features
+
+* **🔬 Interactive Physics Engine:** Custom-built 2D physics simulations using HTML5 Canvas. Includes real-time rendering of single-particle rotations, rigid rotor systems, multi-particle inertia summation, and integral approximations.
+* **🧮 Gamified Mathematics:** Interactive math modules including addition/subtraction visualization, a time-based speed-quiz system with score multipliers, and an interactive calculator.
+* **📈 Sequential Progression:** Users start at Level 0 in both Math and Physics tracks. They must achieve passing grades to unlock subsequent modules.
+* **🔒 Secure Authentication:** Custom credentials authentication powered by NextAuth.js, with robust route protection using Next.js middleware.
+* **☁️ Persistent Cloud Data:** Integrates seamlessly with `@vercel/postgres` to securely store user progression levels and high scores via Server Actions (`GREATEST()` logic ensures scores only improve).
+* **⚡ Next.js 14 Architecture:** Leverages the latest App Router, Server Actions for seamless database mutations, and dynamic file-system-based component loading for simulations.
 
 ## 🛠️ Tech Stack
-* **Framework:** Next.js (v14.1.0)
-* **Library:** React (v18)
-* **Authentication:** NextAuth.js (v4.24.5)
-* **Database:** Vercel Postgres
+
+* **Framework:** [Next.js 14.1.0](https://nextjs.org/) (App Router, Server Actions)
+* **Library:** [React 18](https://reactjs.org/)
+* **Authentication:** [NextAuth.js v4](https://next-auth.js.org/)
+* **Database:** [@vercel/postgres](https://vercel.com/docs/storage/vercel-postgres)
 * **Styling:** Custom CSS & Tailwind CSS base
+* **Simulations:** HTML5 Canvas API & React State
 
 ## 🚀 Getting Started
+
 Follow these steps to set up the project locally on your machine.
 
 ### Prerequisites
@@ -33,21 +37,19 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Create a `.env.local` file in the root directory of your project. The application requires specific environment variables to handle user credentials, session encryption, and database connections.
-
-Add the following to your `.env.local` file:
+Create a `.env.local` file in the root directory. The application requires specific environment variables to handle user credentials, session encryption, and database connections.
 
 ```env
-# NextAuth Secret for encrypting sessions (Generate one using: openssl rand -base64 32)
+# NextAuth Secret for encrypting sessions (Generate: openssl rand -base64 32)
 NEXTAUTH_SECRET="your-super-secret-key-change-me"
 
 # JSON string containing allowed users and their passwords
 APP_USERS='[{"username": "admin", "password": "password123"}, {"username": "ismail", "password": "physics123"}]'
 
-# NextAuth URL (Required for production, usually http://localhost:3000 for local dev)
+# NextAuth URL (Usually http://localhost:3000 for local dev)
 NEXTAUTH_URL="http://localhost:3000"
 
-# Vercel Postgres Connection (Get these from your Vercel Dashboard)
+# Vercel Postgres Connection
 POSTGRES_URL="postgres://default:xyz..."
 POSTGRES_PRISMA_URL="postgres://default:xyz..."
 POSTGRES_URL_NON_POOLING="postgres://default:xyz..."
@@ -69,32 +71,28 @@ Open [http://localhost:3000](http://localhost:3000) with your browser. If you ar
 
 ```text
 ├── app/
-│   ├── actions.js                      # Server actions (handles database level-ups via Postgres)
+│   ├── actions.js                      # Server actions (handles database level-ups & scores via Postgres)
 │   ├── api/auth/[...nextauth]/route.js # NextAuth configuration & Credentials provider logic
 │   ├── components/                     # Reusable React components
-│   │   ├── CompleteCourseButton.jsx    # Client component to trigger course completion
-│   │   └── LogoutButton.jsx            # Client-side logout functionality
+│   │   ├── DashboardTabs.jsx           # Tabbed navigation for Physics vs Math tracks
+│   │   ├── SimulationCarousel.jsx      # Dynamic simulation loader and score aggregator
+│   │   └── simulations/                # The core interactive Canvas/React modules
 │   ├── courses/
-│   │   └── [id]/page.jsx               # Dynamic course viewing page & access guardrails
+│   │   └── [id]/page.jsx               # Dynamic course viewing page & Postgres access guardrails
 │   ├── lib/
-│   │   └── courses.js                  # Central list of course data & requirements
-│   ├── login/
-│   │   └── page.jsx                    # Login page UI and sign-in handling
-│   ├── globals.css                     # Global styles, theming, and UI classes
-│   ├── layout.jsx                      # Root HTML layout and metadata
-│   └── page.jsx                        # Protected course dashboard
-├── middleware.js                       # NextAuth middleware protecting app routes
-└── package.json                        # Project dependencies and scripts
+│   │   ├── courses.js                  # Central list of course data & requirements
+│   │   └── simulationData.js           # Metadata, passing grades, and configuration for modules
+│   └── page.jsx                        # Protected dashboard & user data hydration
+└── middleware.js                       # NextAuth route protection
 ```
 
-## 🔒 Course & Authentication Flow Explained
-* **Authentication:** When a user logs in via `app/login/page.jsx`, NextAuth validates credentials against the `APP_USERS` environment variable.
-* **Global Protection:** The `middleware.js` file prevents unauthorized access to the dashboard (`/`) and any internal courses (`/courses/...`).
-* **Progression Logic:** * The dashboard reads the central `courses.js` file and compares it to the user's current level pulled from Postgres.
-  * If the user's level meets a course's `requiredLevel`, they can enter.
-  * Clicking "Complete Course" triggers a Server Action (`actions.js`) that updates their level in Postgres using `GREATEST()` to ensure levels only go up, never down.
+## 🧠 Simulation Engine Architecture
 
-## 📝 Scripts
-* `npm run dev`: Starts the development server.
-* `npm run build`: Builds the app for production.
-* `npm run start`: Runs the built production application.
+The platform uses a dynamic loading system for its simulations:
+1. When a user navigates to a course (`/courses/[id]`), the server dynamically reads the `app/components/simulations/course[id]` directory.
+2. It gathers all `.jsx` files, compiles them, and passes them to the `SimulationCarousel`.
+3. The Carousel orchestrates the user flow: **Intro/Requirements -> Interactive Sims -> Final Report & DB Submission**.
+4. Simulations report scores upward via `onScoreUpdate`. For time-based quizzes (like Math modules), speed multipliers are automatically applied to the final score.
+
+---
+*Developed with Next.js & HTML5 Canvas.*
