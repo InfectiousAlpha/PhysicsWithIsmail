@@ -72,7 +72,7 @@ export default function DashboardTabs({ courses, levels, scores }) {
                 {/* Score Display */}
                 {!isLocked && courseScore !== undefined && (
                   <div className="text-sm font-bold bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
-                    Score: <span style={{color: themeColor}}>{courseScore}/100</span>
+                    Score: <span style={{color: themeColor}}>{courseScore}</span>
                   </div>
                 )}
               </div>
