@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import SimulationCarousel from "../../components/SimulationCarousel";
 import CompleteCourseButton from "../../components/CompleteCourseButton";
+import { simulationData } from "../../lib/simulationData";
 
 // Import Node native modules for reading the file system
 import fs from "fs";
@@ -123,7 +124,9 @@ export default async function CoursePage({ params }) {
             currentLevel={currentLevel} 
             courseId={course.id}
             category={course.category}
-            coursePassingGrade={course.passingGrade || 0} // PASS THE OVERALL COURSE GRADE DOWN
+            coursePassingGrade={course.passingGrade || 0}
+            simulationData={simulationData}
+            CompleteCourseBtn={CompleteCourseButton}
           />
         ) : (
           <>
