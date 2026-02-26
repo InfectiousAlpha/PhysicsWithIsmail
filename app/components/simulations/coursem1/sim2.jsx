@@ -8,6 +8,10 @@ export default function CourseM1Sim2({ simId, onScoreUpdate }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [results, setResults] = useState([]); // Stores boolean (true for correct)
   const [isFinished, setIsFinished] = useState(false);
+  
+  // Track time
+  const [startTime, setStartTime] = useState(0);
+  const [scoreData, setScoreData] = useState({ finalScore: 0, time: 0, multiplier: 1, baseScore: 0 });
 
   // Generate 10 random 1-digit subtraction questions on component mount
   useEffect(() => {
@@ -29,6 +33,7 @@ export default function CourseM1Sim2({ simId, onScoreUpdate }) {
       });
     }
     setQuestions(generated);
+    setStartTime(Date.now()); // Record the time when questions load
   }, []);
 
   const handleNum = (num) => {
@@ -53,8 +58,26 @@ export default function CourseM1Sim2({ simId, onScoreUpdate }) {
       setUserAnswer('');
     } else {
       setIsFinished(true);
-      // Calculate final score out of 100
-      const finalScore = Math.round((updatedResults.filter(Boolean).length / 10) * 100);
+      
+      // Calculate elapsed time in seconds
+      const endTime = Date.now();
+      const elapsedSeconds = (endTime - startTime) / 1000;
+      
+      // Multiplier logic: 1 / (time segment). 0-29.9s = 1, 30-59.9s = 2, etc.
+      const timeSegment = Math.floor(elapsedSeconds / 30) + 1;
+      const multiplier = 1 / timeSegment;
+      
+      // Calculate base and final scores
+      const baseScore = Math.round((updatedResults.filter(Boolean).length / 10) * 100);
+      const finalScore = Math.round(baseScore * multiplier);
+      
+      setScoreData({
+        finalScore,
+        time: elapsedSeconds,
+        multiplier,
+        baseScore
+      });
+
       if (onScoreUpdate) {
         onScoreUpdate(finalScore);
       }
@@ -76,12 +99,30 @@ export default function CourseM1Sim2({ simId, onScoreUpdate }) {
       <div className="bg-slate-900 p-6 rounded-2xl w-full max-w-sm border border-slate-700 shadow-2xl relative">
         
         {isFinished ? (
-          <div className="text-center py-8">
+          <div className="text-center py-6">
             <div className="text-6xl mb-4">🎉</div>
             <h4 className="text-2xl font-bold text-white mb-2">Quiz Complete!</h4>
-            <div className="text-emerald-400 text-4xl font-mono font-bold my-4">
-              {results.filter(Boolean).length} / 10
+            
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-600 mb-4 inline-block w-full text-left">
+              <div className="flex justify-between text-slate-300 text-sm mb-1">
+                <span>Correct Answers:</span>
+                <span className="text-white font-bold">{results.filter(Boolean).length} / 10</span>
+              </div>
+              <div className="flex justify-between text-slate-300 text-sm mb-1">
+                <span>Time Taken:</span>
+                <span className="text-sky-400 font-bold">{scoreData.time.toFixed(1)}s</span>
+              </div>
+              <div className="flex justify-between text-slate-300 text-sm">
+                <span>Speed Multiplier:</span>
+                <span className="text-purple-400 font-bold">{scoreData.multiplier.toFixed(2)}x</span>
+              </div>
             </div>
+
+            <div className="text-emerald-400 text-5xl font-mono font-bold my-2">
+              {scoreData.finalScore}
+            </div>
+            <div className="text-emerald-500/80 text-sm font-bold uppercase tracking-widest mb-4">Final Score</div>
+
             <p className="text-slate-400 text-sm">
               Your score has been recorded. Click "Finish & View Report" to complete the course.
             </p>
