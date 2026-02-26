@@ -37,98 +37,100 @@ export default function CourseM1Sim5({ simId }) {
   };
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-rose-500 overflow-hidden text-white mb-8 flex flex-col items-center">
-      <div className="w-full mb-6">
-        <h3 className="text-2xl font-bold text-white">Below Zero</h3>
-        <p className="text-rose-400 text-sm font-mono mt-1">What happens if we subtract a bigger number?</p>
+    <div className="glass-panel p-6 md:p-10 rounded-2xl border-l-4 border-l-rose-500 overflow-hidden text-white flex-grow flex flex-col h-full w-full">
+      <div className="w-full mb-6 shrink-0">
+        <h3 className="text-2xl md:text-4xl font-bold text-white">Below Zero</h3>
+        <p className="text-rose-400 text-sm md:text-base font-mono mt-1">What happens if we subtract a bigger number?</p>
       </div>
 
-      <div className="bg-slate-900 p-8 rounded-2xl w-full max-w-2xl border border-slate-700 shadow-2xl flex flex-col items-center">
-        
-        <p className="text-slate-300 text-center mb-8 text-lg">
-          If you have ${startNum} but you need to pay ${subNum}, you don't just have $0 left... you owe money! We use <strong>Negative Numbers</strong> to show values less than zero.
-        </p>
-
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-600 w-full flex flex-col items-center justify-center mb-8 overflow-x-auto custom-scrollbar">
+      <div className="flex-grow flex items-center justify-center w-full min-h-0 py-4">
+        <div className="bg-slate-900 p-8 md:p-16 rounded-3xl w-full max-w-5xl border border-slate-700 shadow-2xl flex flex-col items-center">
           
-          {/* Number Line Area */}
-          <div className="flex items-start justify-center min-w-max relative pt-8 pb-4 px-4 overflow-hidden">
+          <p className="text-slate-300 text-center mb-8 md:mb-12 text-lg md:text-2xl max-w-4xl">
+            If you have ${startNum} but you need to pay ${subNum}, you don't just have $0 left... you owe money! We use <strong>Negative Numbers</strong> to show values less than zero.
+          </p>
+
+          <div className="bg-slate-800 p-6 md:p-10 rounded-3xl border border-slate-600 w-full flex flex-col items-center justify-center mb-10 overflow-x-auto custom-scrollbar">
             
-            {/* Horizontal Line - Perfectly aligned to start of tick marks */}
-            <div className="absolute top-[64px] left-4 right-4 h-[2px] bg-slate-500 z-0"></div>
+            {/* Number Line Area */}
+            <div className="flex items-start justify-center min-w-max relative pt-10 md:pt-16 pb-6 md:pb-8 px-8 overflow-hidden">
+              
+              {/* Horizontal Line - Carefully placed to intersect ticks accurately across screen sizes */}
+              <div className="absolute top-[72px] md:top-[96px] left-8 right-8 h-[2px] md:h-1 bg-slate-500 z-0"></div>
 
-            {Array.from({ length: 17 }, (_, i) => i - 8).map((num) => (
-              <div key={num} className="flex flex-col items-center w-8 sm:w-10 relative">
-                
-                {/* Ball Area - fixed height to align ball exactly above the tick */}
-                <div className="h-8 flex flex-col justify-end w-full items-center">
-                  {currentPos === num && (
-                    <div className={`w-5 h-5 rounded-full z-10 mb-1 ${
-                      isAnimating ? 'bg-sky-400 animate-bounce' : 
-                      isCalculated ? 'bg-rose-500 animate-bounce' : 'bg-sky-500'
-                    }`}></div>
-                  )}
-                </div>
+              {Array.from({ length: 17 }, (_, i) => i - 8).map((num) => (
+                <div key={num} className="flex flex-col items-center w-10 sm:w-14 md:w-20 relative">
+                  
+                  {/* Ball Area - fixed height to align ball exactly above the tick */}
+                  <div className="h-10 md:h-12 flex flex-col justify-end w-full items-center">
+                    {currentPos === num && (
+                      <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full z-10 mb-2 md:mb-3 ${
+                        isAnimating ? 'bg-sky-400 animate-bounce' : 
+                        isCalculated ? 'bg-rose-500 animate-bounce' : 'bg-sky-500'
+                      }`}></div>
+                    )}
+                  </div>
 
-                {/* Tick Mark */}
-                <div className={`w-[2px] z-0 ${num === 0 ? 'bg-white h-6' : 'bg-slate-500 h-4'}`}></div>
-                
-                {/* Number Label */}
-                <div className={`mt-2 h-6 flex items-center justify-center text-sm font-mono ${num === 0 ? 'text-white font-bold text-lg' : num < 0 ? 'text-rose-400' : 'text-sky-400'}`}>
-                  {num}
+                  {/* Tick Mark */}
+                  <div className={`z-0 ${num === 0 ? 'bg-white h-8 md:h-10 w-[3px] md:w-1' : 'bg-slate-500 h-5 md:h-7 w-[2px] md:w-[3px]'}`}></div>
+                  
+                  {/* Number Label */}
+                  <div className={`mt-3 md:mt-4 h-8 flex items-center justify-center text-base md:text-2xl font-mono ${num === 0 ? 'text-white font-bold text-xl md:text-3xl' : num < 0 ? 'text-rose-400' : 'text-sky-400'}`}>
+                    {num}
+                  </div>
+                  
                 </div>
-                
+              ))}
+            </div>
+            
+            {isCalculated && !isAnimating ? (
+              <div className="text-4xl md:text-6xl font-bold text-white mt-8 animate-in fade-in zoom-in">
+                {startNum} - {subNum} = <span className="text-rose-400">{startNum - subNum}</span>
               </div>
-            ))}
+            ) : (
+              <div className="text-2xl md:text-4xl font-bold text-slate-300 mt-8 min-h-[48px] md:min-h-[60px]">
+                 {isAnimating 
+                    ? `Jumping back... ${startNum - currentPos} / ${subNum} spaces` 
+                    : `Start at ${startNum}, jump back ${subNum} spaces...`}
+              </div>
+            )}
           </div>
-          
-          {isCalculated && !isAnimating ? (
-            <div className="text-3xl font-bold text-white mt-6 animate-in fade-in zoom-in">
-              {startNum} - {subNum} = <span className="text-rose-400">{startNum - subNum}</span>
-            </div>
-          ) : (
-            <div className="text-xl font-bold text-slate-300 mt-6 min-h-[40px]">
-               {isAnimating 
-                  ? `Jumping back... ${startNum - currentPos} / ${subNum} spaces` 
-                  : `Start at ${startNum}, jump back ${subNum} spaces...`}
-            </div>
-          )}
+
+          {/* Controls */}
+          <div className="flex gap-4">
+            {!isCalculated && !isAnimating && (
+              <button 
+                onClick={handleCalculate}
+                className="bg-rose-500 hover:bg-rose-400 text-white font-bold py-4 px-10 rounded-2xl text-xl md:text-3xl transition-colors shadow-lg shadow-rose-500/30"
+              >
+                See the Result!
+              </button>
+            )}
+            
+            {isAnimating && (
+              <button 
+                disabled
+                className="bg-slate-700 text-slate-400 font-bold py-4 px-10 rounded-2xl text-xl md:text-3xl cursor-not-allowed"
+              >
+                Jumping...
+              </button>
+            )}
+
+            {isCalculated && !isAnimating && (
+              <button 
+                onClick={randomize}
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold py-4 px-10 rounded-2xl text-xl md:text-3xl transition-colors shadow-lg shadow-sky-500/30 animate-in fade-in zoom-in"
+              >
+                Try Another
+              </button>
+            )}
+          </div>
+
+          <p className="text-slate-500 text-sm md:text-base mt-8 italic text-center">
+            (This is a concept module. It is not graded. You can proceed when you're ready.)
+          </p>
+
         </div>
-
-        {/* Controls */}
-        <div className="flex gap-4">
-          {!isCalculated && !isAnimating && (
-            <button 
-              onClick={handleCalculate}
-              className="bg-rose-500 hover:bg-rose-400 text-white font-bold py-3 px-8 rounded-xl text-lg transition-colors shadow-lg shadow-rose-500/30"
-            >
-              See the Result!
-            </button>
-          )}
-          
-          {isAnimating && (
-            <button 
-              disabled
-              className="bg-slate-700 text-slate-400 font-bold py-3 px-8 rounded-xl text-lg cursor-not-allowed"
-            >
-              Jumping...
-            </button>
-          )}
-
-          {isCalculated && !isAnimating && (
-            <button 
-              onClick={randomize}
-              className="bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-8 rounded-xl text-lg transition-colors shadow-lg shadow-sky-500/30 animate-in fade-in zoom-in"
-            >
-              Try Another
-            </button>
-          )}
-        </div>
-
-        <p className="text-slate-500 text-sm mt-8 italic">
-          (This is a concept module. It is not graded. You can proceed when you're ready.)
-        </p>
-
       </div>
     </div>
   );
