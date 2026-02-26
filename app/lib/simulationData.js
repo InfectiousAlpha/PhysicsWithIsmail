@@ -14,9 +14,11 @@ export const simulationData = {
   "c3-sim1": { name: "Rotasi Partikel Tunggal (Review)", passingGrade: 0, autoComplete: true },
   "c3-sim2": { name: "Sistem Banyak Partikel (Review)", passingGrade: 0, autoComplete: true },
 
-  // Math 1: Basic Arithmetic (Locks next button until finished, requires 50 to pass)
-  "cm1-sim1": { name: "Addition Mastery", passingGrade: 50, autoComplete: false },
-  "cm1-sim2": { name: "Subtraction Mastery", passingGrade: 50, autoComplete: false },
+  // Math 1: Basic Arithmetic
+  "cm1-sim1": { name: "Addition Concept", isScored: false, autoComplete: true },
+  "cm1-sim2": { name: "Addition Mastery", passingGrade: 50, autoComplete: false },
+  "cm1-sim3": { name: "Subtraction Concept", isScored: false, autoComplete: true },
+  "cm1-sim4": { name: "Subtraction Mastery", passingGrade: 50, autoComplete: false },
 
   // Math 2: Multiplication & Division
   "cm2-sim1": { name: "Interactive Calculator", passingGrade: 0, autoComplete: true },
