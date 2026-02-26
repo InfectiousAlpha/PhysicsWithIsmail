@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 
-export async function completeCourse(courseId, unlocksLevel, category, score = 100) {
+export async function completeCourse(courseId, unlocksLevel, category, score = 100, hasPassed = true) {
   // 1. Verify user is authenticated
   const session = await getServerSession(authOptions);
   if (!session?.user?.name) {
@@ -34,25 +34,27 @@ export async function completeCourse(courseId, unlocksLevel, category, score = 1
     );
   `;
 
-  // 3. Update Category Level (Math or Physics)
-  if (category === 'math') {
-    await sql`
-      INSERT INTO user_levels (username, math_level)
-      VALUES (${username}, ${unlocksLevel})
-      ON CONFLICT (username)
-      DO UPDATE SET math_level = GREATEST(user_levels.math_level, EXCLUDED.math_level);
-    `;
-  } else {
-    // Default to physics
-    await sql`
-      INSERT INTO user_levels (username, physics_level)
-      VALUES (${username}, ${unlocksLevel})
-      ON CONFLICT (username)
-      DO UPDATE SET physics_level = GREATEST(user_levels.physics_level, EXCLUDED.physics_level);
-    `;
+  // 3. Update Category Level (Math or Physics) ONLY if the user passed
+  if (hasPassed) {
+    if (category === 'math') {
+      await sql`
+        INSERT INTO user_levels (username, math_level)
+        VALUES (${username}, ${unlocksLevel})
+        ON CONFLICT (username)
+        DO UPDATE SET math_level = GREATEST(user_levels.math_level, EXCLUDED.math_level);
+      `;
+    } else {
+      // Default to physics
+      await sql`
+        INSERT INTO user_levels (username, physics_level)
+        VALUES (${username}, ${unlocksLevel})
+        ON CONFLICT (username)
+        DO UPDATE SET physics_level = GREATEST(user_levels.physics_level, EXCLUDED.physics_level);
+      `;
+    }
   }
 
-  // 4. Upsert Course Score (Keeps highest score achieved)
+  // 4. Upsert Course Score (Keeps highest score achieved, even if they failed this attempt but had a higher one previously)
   await sql`
     INSERT INTO user_course_scores (username, course_id, score)
     VALUES (${username}, ${courseId}, ${score})
