@@ -112,13 +112,13 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
           {simulations.map((_, i) => (
             <div key={i} className="flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border border-slate-700">
               <span className="font-semibold">Interactive Laboratory {i + 1}</span>
-              <span className="text-emerald-400 font-mono font-bold">{scores[i]}/100 pts</span>
+              <span className="text-emerald-400 font-mono font-bold">{scores[i]} pts</span>
             </div>
           ))}
           
           <div className="flex justify-between items-center bg-slate-700 p-4 rounded-lg border border-slate-500 mt-4 shadow-lg">
             <span className="font-bold text-lg text-white">Mean Final Score</span>
-            <span className="text-white font-mono font-bold text-2xl">{meanScore}/100 pts</span>
+            <span className="text-white font-mono font-bold text-2xl">{meanScore} pts</span>
           </div>
         </div>
 
