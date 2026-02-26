@@ -22,7 +22,7 @@ export default function CourseM1Sim7({ simId }) {
         <p className="text-purple-400 text-sm font-mono mt-1">Adding and Subtracting Negative Numbers</p>
       </div>
 
-      <div className="bg-slate-900 p-8 rounded-2xl w-full max-w-2xl border border-slate-700 shadow-2xl flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col items-center">
         
         <p className="text-slate-300 text-center mb-6 text-lg">
           What happens when we add or subtract a <strong>negative</strong> number? Let's translate it to simple rules!

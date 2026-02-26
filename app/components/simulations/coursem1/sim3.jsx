@@ -38,7 +38,7 @@ export default function CourseM1Sim3({ simId }) {
         <p className="text-rose-400 text-sm font-mono mt-1">Taking quantities away</p>
       </div>
 
-      <div className="bg-slate-900 p-8 rounded-2xl w-full max-w-2xl border border-slate-700 shadow-2xl flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col items-center">
         
         <p className="text-slate-300 text-center mb-8 text-lg">
           Subtraction is taking things away! We start with a total, and remove some to see what is left over.
