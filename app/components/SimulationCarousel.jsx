@@ -245,8 +245,8 @@ export default function SimulationCarousel({
           </button>
         </div>
 
-        {/* Active Simulation */}
-        <div className="simulation-wrapper flex-grow transition-all duration-300">
+        {/* Active Simulation Container */}
+        <div className="simulation-wrapper flex flex-col flex-grow transition-all duration-300 min-h-0">
           {currentSimWithProps}
         </div>
       </div>
