@@ -16,13 +16,13 @@ export default function CourseM1Sim7({ simId }) {
   };
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-purple-500 overflow-hidden text-white mb-8 flex flex-col items-center">
-      <div className="w-full mb-6">
+    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-purple-500 overflow-hidden text-white flex-grow flex flex-col w-full h-full">
+      <div className="w-full mb-6 shrink-0">
         <h3 className="text-2xl font-bold text-white">Tricky Operations</h3>
         <p className="text-purple-400 text-sm font-mono mt-1">Adding and Subtracting Negative Numbers</p>
       </div>
 
-      <div className="w-full max-w-2xl flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col items-center justify-center flex-grow mx-auto">
         
         <p className="text-slate-300 text-center mb-6 text-lg">
           What happens when we add or subtract a <strong>negative</strong> number? Let's translate it to simple rules!

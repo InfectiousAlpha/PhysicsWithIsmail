@@ -37,13 +37,13 @@ export default function CourseM1Sim5({ simId }) {
   };
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-rose-500 overflow-hidden text-white mb-8 flex flex-col items-center">
-      <div className="w-full mb-6">
+    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-rose-500 overflow-hidden text-white flex-grow flex flex-col w-full h-full">
+      <div className="w-full mb-6 shrink-0">
         <h3 className="text-2xl font-bold text-white">Below Zero</h3>
         <p className="text-rose-400 text-sm font-mono mt-1">What happens if we subtract a bigger number?</p>
       </div>
 
-      <div className="w-full max-w-2xl flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col items-center justify-center flex-grow mx-auto">
         
         <p className="text-slate-300 text-center mb-8 text-lg">
           If you have ${startNum} but you need to pay ${subNum}, you don't just have $0 left... you owe money! We use <strong>Negative Numbers</strong> to show values less than zero.

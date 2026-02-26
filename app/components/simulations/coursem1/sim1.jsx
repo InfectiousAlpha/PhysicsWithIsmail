@@ -20,13 +20,13 @@ export default function CourseM1Sim1({ simId }) {
   };
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-sky-500 overflow-hidden text-white mb-8 flex flex-col items-center">
-      <div className="w-full mb-6">
+    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-sky-500 overflow-hidden text-white flex-grow flex flex-col w-full h-full">
+      <div className="w-full mb-6 shrink-0">
         <h3 className="text-2xl font-bold text-white">Concept of Addition</h3>
         <p className="text-sky-400 text-sm font-mono mt-1">Combining quantities together</p>
       </div>
 
-      <div className="w-full max-w-2xl flex flex-col items-center">
+      <div className="w-full max-w-2xl flex flex-col items-center justify-center flex-grow mx-auto">
         
         <p className="text-slate-300 text-center mb-8 text-lg">
           Addition is just putting things together! Let's see what happens when we combine two groups of apples.
