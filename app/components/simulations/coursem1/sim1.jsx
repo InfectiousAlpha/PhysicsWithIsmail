@@ -2,34 +2,24 @@
 
 import { useState, useEffect } from 'react';
 
-export default function CourseM1Sim2({ simId, onScoreUpdate, onComplete }) {
+export default function CourseM1Sim1({ simId, onScoreUpdate, onComplete }) {
   const [questions, setQuestions] = useState([]);
   const [qIndex, setQIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [results, setResults] = useState([]); // Stores boolean (true for correct)
   const [isFinished, setIsFinished] = useState(false);
-  
+
   // Track time
   const [startTime, setStartTime] = useState(0);
   const [scoreData, setScoreData] = useState({ finalScore: 0, time: 0, multiplier: 1, baseScore: 0 });
 
-  // Generate 10 random 1-digit subtraction questions on component mount
+  // Generate 10 random 1-digit addition questions on component mount
   useEffect(() => {
     const generated = [];
     for (let i = 0; i < 10; i++) {
-      let num1 = Math.floor(Math.random() * 9) + 1; // 1 to 9
-      let num2 = Math.floor(Math.random() * 9) + 1; // 1 to 9
-      
-      // Ensure the result is always positive or zero since our keypad has no minus sign
-      if (num1 < num2) {
-        let temp = num1;
-        num1 = num2;
-        num2 = temp;
-      }
-
       generated.push({
-        a: num1,
-        b: num2
+        a: Math.floor(Math.random() * 9) + 1, // 1 to 9
+        b: Math.floor(Math.random() * 9) + 1  // 1 to 9
       });
     }
     setQuestions(generated);
@@ -48,7 +38,7 @@ export default function CourseM1Sim2({ simId, onScoreUpdate, onComplete }) {
     if (userAnswer === '') return; // Prevent empty submission
 
     const currentQ = questions[qIndex];
-    const isCorrect = parseInt(userAnswer) === (currentQ.a - currentQ.b);
+    const isCorrect = parseInt(userAnswer) === (currentQ.a + currentQ.b);
     
     const updatedResults = [...results, isCorrect];
     setResults(updatedResults);
@@ -63,7 +53,7 @@ export default function CourseM1Sim2({ simId, onScoreUpdate, onComplete }) {
       const endTime = Date.now();
       const elapsedSeconds = (endTime - startTime) / 1000;
       
-      // Multiplier logic: 1 / (time segment). 0-29.9s = 1, 30-59.9s = 1/2, etc.
+      // Multiplier logic: 1 / (time segment). 0-29.9s = 1, 30-59.9s = 1/2, 60-89.9s = 1/3 etc.
       const timeSegment = Math.floor(elapsedSeconds / 30) + 1;
       const multiplier = 1 / timeSegment;
       
@@ -97,7 +87,7 @@ export default function CourseM1Sim2({ simId, onScoreUpdate, onComplete }) {
   return (
     <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-emerald-500 overflow-hidden text-white mb-8 flex flex-col items-center">
       <div className="w-full mb-6">
-        <h3 className="text-2xl font-bold text-white">Subtraction Mastery</h3>
+        <h3 className="text-2xl font-bold text-white">Addition Mastery</h3>
         <p className="text-emerald-400 text-sm font-mono mt-1">10 Random 1-Digit Questions</p>
       </div>
 
@@ -143,7 +133,7 @@ export default function CourseM1Sim2({ simId, onScoreUpdate, onComplete }) {
             {/* Display Screen */}
             <div className="bg-slate-800 p-4 rounded-xl mb-6 text-right border border-slate-600 h-24 flex flex-col justify-between items-center flex-row">
               <div className="text-4xl font-bold text-white tracking-wider flex items-center justify-center w-full">
-                {questions[qIndex].a} - {questions[qIndex].b} = <span className="text-emerald-400 ml-2">{userAnswer || '?'}</span>
+                {questions[qIndex].a} + {questions[qIndex].b} = <span className="text-emerald-400 ml-2">{userAnswer || '?'}</span>
               </div>
             </div>
 
