@@ -1,10 +1,17 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import CompleteCourseButton from './CompleteCourseButton';
-import { simulationData } from '../lib/simulationData';
 
-export default function SimulationCarousel({ simulations, unlocksLevel, currentLevel, courseId, category, coursePassingGrade = 0 }) {
+export default function SimulationCarousel({ 
+  simulations, 
+  unlocksLevel, 
+  currentLevel, 
+  courseId, 
+  category, 
+  coursePassingGrade = 0,
+  simulationData = {},
+  CompleteCourseBtn = null
+}) {
   // Navigation phases: 'intro', 'sims', 'summary'
   const [step, setStep] = useState('intro');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -92,7 +99,7 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h3 className="text-3xl font-bold">Course Introduction</h3>
-          <p className="text-slate-300 mt-2">This course contains the following interactive simulations. Complete all of them to finish the course and record your score.</p>
+          <p className="text-slate-300 mt-2">This course contains the following interactive modules. Complete all of them to finish the course and record your score.</p>
         </div>
 
         {/* Prominent Fullscreen Button */}
@@ -127,7 +134,7 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
           </li>
           <li className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-            Meet or exceed the minimum passing grade for every individual module below.
+            Meet or exceed the minimum passing grade for every individual graded module below.
           </li>
         </ul>
       </div>
@@ -136,13 +143,17 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
         {simulations.map((sim, i) => {
           const simId = sim.props.simId;
           const simInfo = simulationData[simId] || { name: `Interactive Laboratory ${i + 1}`, passingGrade: 0 };
+          const isScored = simInfo.isScored !== false;
+
           return (
             <li key={i} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex justify-between items-center shadow-sm">
               <span className="font-semibold text-lg">{simInfo.name}</span>
               <div className="flex gap-3 items-center">
-                {simInfo.passingGrade > 0 && (
+                {!isScored ? (
+                  <span className="text-xs text-sky-400 border border-sky-400/50 bg-sky-400/10 px-2 py-1 rounded font-bold">Concept / No Score</span>
+                ) : simInfo.passingGrade > 0 ? (
                   <span className="text-xs text-amber-400 border border-amber-400/50 bg-amber-400/10 px-2 py-1 rounded font-bold">Passing Grade: {simInfo.passingGrade}</span>
-                )}
+                ) : null}
                 <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-md border border-slate-700">Modul {i + 1}</span>
               </div>
             </li>
@@ -246,11 +257,20 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
   // PHASE 3: SUMMARY SCREEN (REPORT)
   // =====================================
   const renderSummary = () => {
-    const meanScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    // Determine which simulations are actually scored
+    const scoredIndices = simulations.map((sim, i) => {
+      const simInfo = simulationData[sim.props.simId] || {};
+      return simInfo.isScored !== false ? i : -1;
+    }).filter(i => i !== -1);
+
+    // If there are scored modules, calculate mean. Otherwise default to 100.
+    const meanScore = scoredIndices.length > 0 
+      ? Math.round(scoredIndices.reduce((sum, i) => sum + scores[i], 0) / scoredIndices.length)
+      : 100;
     
-    // Check if the user failed ANY individual module
-    const failedModules = simulations.some((sim, i) => {
-      const simInfo = simulationData[sim.props.simId] || { passingGrade: 0 };
+    // Check if the user failed ANY individual SCORED module
+    const failedModules = scoredIndices.some((i) => {
+      const simInfo = simulationData[simulations[i].props.simId] || { passingGrade: 0 };
       return scores[i] < simInfo.passingGrade;
     });
 
@@ -262,7 +282,7 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-3xl font-bold">Course Report</h3>
-            <p className="text-slate-300 mt-2">Here is your performance across all simulations in this course.</p>
+            <p className="text-slate-300 mt-2">Here is your performance across the graded modules in this course.</p>
           </div>
           
           <button 
@@ -279,19 +299,20 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
         </div>
         
         <div className="space-y-3 mb-6 flex-grow">
-          {simulations.map((sim, i) => {
+          {scoredIndices.map((originalIndex) => {
+            const sim = simulations[originalIndex];
             const simId = sim.props.simId;
-            const simInfo = simulationData[simId] || { name: `Interactive Laboratory ${i + 1}`, passingGrade: 0 };
-            const didPassSim = scores[i] >= simInfo.passingGrade;
+            const simInfo = simulationData[simId] || { name: `Interactive Laboratory ${originalIndex + 1}`, passingGrade: 0 };
+            const didPassSim = scores[originalIndex] >= simInfo.passingGrade;
 
             return (
-              <div key={i} className={`flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border ${didPassSim ? 'border-slate-700' : 'border-red-500/50'} shadow-sm`}>
+              <div key={originalIndex} className={`flex justify-between items-center bg-slate-800/50 p-4 rounded-lg border ${didPassSim ? 'border-slate-700' : 'border-red-500/50'} shadow-sm`}>
                 <div>
                   <span className="font-semibold block">{simInfo.name}</span>
                   {simInfo.passingGrade > 0 && <span className="text-xs text-slate-400">Target Grade: {simInfo.passingGrade}</span>}
                 </div>
                 <div className="text-right">
-                  <span className={`font-mono font-bold text-lg ${didPassSim ? 'text-emerald-400' : 'text-red-400'}`}>{scores[i]} pts</span>
+                  <span className={`font-mono font-bold text-lg ${didPassSim ? 'text-emerald-400' : 'text-red-400'}`}>{scores[originalIndex]} pts</span>
                   {!didPassSim && <span className="block text-xs font-bold text-red-400">Failed</span>}
                 </div>
               </div>
@@ -322,15 +343,17 @@ export default function SimulationCarousel({ simulations, unlocksLevel, currentL
           </div>
         )}
 
-        <CompleteCourseButton 
-          courseId={courseId}
-          category={category}
-          unlocksLevel={unlocksLevel} 
-          currentLevel={currentLevel} 
-          isReady={true}
-          finalScore={meanScore}
-          hasPassed={!isCourseFailed} // Passes this state down to the action!
-        />
+        {CompleteCourseBtn && (
+          <CompleteCourseBtn 
+            courseId={courseId}
+            category={category}
+            unlocksLevel={unlocksLevel} 
+            currentLevel={currentLevel} 
+            isReady={true}
+            finalScore={meanScore}
+            hasPassed={!isCourseFailed} // Passes this state down to the action!
+          />
+        )}
       </div>
     );
   };
