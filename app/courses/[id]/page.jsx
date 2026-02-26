@@ -123,6 +123,7 @@ export default async function CoursePage({ params }) {
             currentLevel={currentLevel} 
             courseId={course.id}
             category={course.category}
+            coursePassingGrade={course.passingGrade || 0} // PASS THE OVERALL COURSE GRADE DOWN
           />
         ) : (
           <>
