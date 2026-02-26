@@ -19,6 +19,10 @@ export const simulationData = {
   "cm1-sim2": { name: "Addition Mastery", passingGrade: 50, autoComplete: false },
   "cm1-sim3": { name: "Subtraction Concept", isScored: false, autoComplete: true },
   "cm1-sim4": { name: "Subtraction Mastery", passingGrade: 50, autoComplete: false },
+  "cm1-sim5": { name: "Below Zero Concept", isScored: false, autoComplete: true },
+  "cm1-sim6": { name: "Negative Subtraction Mastery", passingGrade: 50, autoComplete: false },
+  "cm1-sim7": { name: "Negative Operations Concept", isScored: false, autoComplete: true },
+  "cm1-sim8": { name: "Mixed Operations Mastery", passingGrade: 50, autoComplete: false },
 
   // Math 2: Multiplication & Division
   "cm2-sim1": { name: "Interactive Calculator", passingGrade: 0, autoComplete: true },
