@@ -8,13 +8,16 @@ export default function CompleteCourseButton({ courseId, category, unlocksLevel,
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  // If the user's level is already equal or higher than what this course unlocks, disable it
+  // Check if the user has already finished this course previously
   const isCompleted = currentLevel >= unlocksLevel;
+  
+  // Base theme colors depending on the category
   const themeClass = category === 'math' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-sky-500 hover:bg-sky-600';
 
   const handleComplete = () => {
     startTransition(async () => {
-      // Save the exact final score passed from the simulations
+      // Save the exact final score passed from the simulations. 
+      // The backend uses GREATEST() so it will never lower a past high score!
       await completeCourse(courseId, unlocksLevel, category, finalScore);
       
       // Redirect to the dashboard and ensure the correct tab is active
@@ -25,23 +28,22 @@ export default function CompleteCourseButton({ courseId, category, unlocksLevel,
   return (
     <button
       onClick={handleComplete}
-      disabled={isPending || isCompleted || !isReady}
+      // We removed "isCompleted" from the disabled check so they can resubmit!
+      disabled={isPending || !isReady}
       className={`text-white font-bold py-3 px-6 rounded-lg transition-colors w-full mt-8 ${
         isPending 
           ? 'bg-slate-400 cursor-not-allowed' 
-          : isCompleted 
-            ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
-            : !isReady 
-              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              : themeClass
+          : !isReady 
+            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            : themeClass
       }`}
     >
       {isPending 
         ? 'Processing & Saving Score...' 
-        : isCompleted 
-          ? 'Course Completed ✅' 
-          : !isReady 
-            ? 'Finish all simulations to unlock!'
+        : !isReady 
+          ? 'Finish all simulations to unlock!'
+          : isCompleted 
+            ? 'Submit New Score ✅' // Change text if they are replaying
             : 'Complete Course & Save Score!'}
     </button>
   );
