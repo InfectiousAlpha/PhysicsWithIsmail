@@ -1,267 +1,219 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect } from 'react';
 
-export default function Course1Sim1({ simId, onComplete }) {
-  const [phase, setPhase] = useState(0); // 0: Start, 1: Quote Fade In, 2: Sim Fade In, 3: Unlocked
-  const canvasRef = useRef(null);
-  
-  // Timings
-  const QUOTE_IN_TIME = 1000;
-  const SIM_IN_TIME = 5000;
-  const ANIMATION_DURATION = 6000; // How long the canvas animates before unlocking
-  const EXTRA_WAIT = 2000;
-
+export default function Course1Sim1({ simId }) {
   useEffect(() => {
-    let isMounted = true;
-
-    // 1. Show Quote
-    setTimeout(() => {
-      if (isMounted) setPhase(1);
-    }, QUOTE_IN_TIME);
-
-    // 2. Hide Quote, Show Simulation Objects
-    setTimeout(() => {
-      if (isMounted) setPhase(2);
-    }, SIM_IN_TIME);
-
-    // 3. Unlock Next Button (Animation + 2 seconds)
-    setTimeout(() => {
-      if (isMounted) {
-        setPhase(3);
-        if (onComplete) onComplete(); // This tells SimulationCarousel to enable the Next button!
-      }
-    }, SIM_IN_TIME + ANIMATION_DURATION + EXTRA_WAIT);
-
-    return () => { isMounted = false; };
-  }, [onComplete]);
-
-  useEffect(() => {
-    if (phase < 2) return; // Don't draw until we reach phase 2
-
-    const canvas = canvasRef.current;
+    const canvas = document.getElementById(`sim-canvas-${simId}`);
     if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
-    
     let animationFrameId;
-    let startTime = performance.now();
+    let isActive = true;
 
-    // Bouncing Ball State
-    let ball = { x: 0, y: 0, vx: 150, vy: -120, r: 10 };
+    let params = { m: 2.0, r: 150, f: 0.0, damping: 0.0 };
+    let state = { angle: 0, angularVel: 0, lastTime: 0 };
+    let physics_output = { inertia: 0, torque: 0, alpha: 0 };
 
-    function render(timestamp) {
+    const sliders = {
+      m: document.getElementById(`slider-s-m-${simId}`),
+      r: document.getElementById(`slider-s-r-${simId}`),
+      f: document.getElementById(`slider-s-f-${simId}`),
+      damp: document.getElementById(`slider-s-damp-${simId}`)
+    };
+    
+    const displays = {
+      m: document.getElementById(`val-s-m-${simId}`),
+      r: document.getElementById(`val-s-r-${simId}`),
+      f: document.getElementById(`val-s-f-${simId}`),
+      damp: document.getElementById(`val-s-damp-${simId}`),
+      inertia: document.getElementById(`stat-s-inertia-${simId}`),
+      omega: document.getElementById(`stat-s-omega-${simId}`),
+      alpha: document.getElementById(`stat-s-alpha-${simId}`),
+      torque: document.getElementById(`stat-s-torque-${simId}`)
+    };
+
+    function updateParams() {
+      if(!sliders.m) return;
+      params.m = parseFloat(sliders.m.value);
+      params.r = parseFloat(sliders.r.value);
+      params.f = parseFloat(sliders.f.value);
+      params.damping = parseFloat(sliders.damp.value);
+
+      if(displays.m) {
+        displays.m.textContent = params.m.toFixed(1) + " kg";
+        displays.r.textContent = params.r.toFixed(0) + " px";
+        displays.f.textContent = params.f.toFixed(1) + " N";
+        displays.damp.textContent = params.damping.toFixed(2);
+      }
+    }
+
+    const listeners = [];
+    Object.values(sliders).forEach(s => { 
+      if(s) {
+        s.addEventListener('input', updateParams);
+        listeners.push({ el: s, type: 'input', fn: updateParams });
+      }
+    });
+
+    const btnReset = document.getElementById(`btn-reset-${simId}`);
+    const resetFn = () => { state.angle = 0; state.angularVel = 0; };
+    if(btnReset) {
+      btnReset.addEventListener('click', resetFn);
+      listeners.push({ el: btnReset, type: 'click', fn: resetFn });
+    }
+
+    function updatePhysics(dt) {
+      const I = params.m * (params.r * params.r) / 1000; 
+      physics_output.inertia = params.m * params.r * params.r;
+      const torque = params.f * (params.r / 10);
+      physics_output.torque = params.f * params.r;
+      const alpha = torque / I;
+      physics_output.alpha = alpha;
+      const dragFactor = 1.0 - (params.damping * 0.05);
+      state.angularVel = (state.angularVel + alpha * dt) * dragFactor;
+      state.angle += state.angularVel * dt;
+    }
+
+    function drawArrow(ctx, startX, startY, angle, magnitude, color) {
+      if (Math.abs(magnitude) < 0.1) return;
+      const scale = 4; 
+      const len = magnitude * scale;
+      const arrowAngle = angle + (Math.PI / 2);
+      const endX = startX + Math.cos(arrowAngle) * len;
+      const endY = startY + Math.sin(arrowAngle) * len;
+
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke();
+      
+      const headAngle = Math.atan2(endY - startY, endX - startX);
+      const headLen = 8;
+      ctx.beginPath(); ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - headLen * Math.cos(headAngle - Math.PI/6), endY - headLen * Math.sin(headAngle - Math.PI/6));
+      ctx.lineTo(endX - headLen * Math.cos(headAngle + Math.PI/6), endY - headLen * Math.sin(headAngle + Math.PI/6));
+      ctx.fill();
+    }
+
+    function loop(timestamp) {
+      if (!isActive) return;
+      if (!state.lastTime) state.lastTime = timestamp;
+      const dt = Math.min((timestamp - state.lastTime) / 1000, 0.05);
+      state.lastTime = timestamp;
+
+      updatePhysics(dt);
+
+      if(displays.inertia) {
+        displays.inertia.textContent = physics_output.inertia.toFixed(0);
+        displays.omega.textContent = state.angularVel.toFixed(2);
+        displays.alpha.textContent = physics_output.alpha.toFixed(2);
+        displays.torque.textContent = physics_output.torque.toFixed(1);
+      }
+
       if(canvas.width === 0 || canvas.width !== canvas.parentElement.clientWidth) { 
         canvas.width = canvas.parentElement.clientWidth; 
         canvas.height = canvas.parentElement.clientHeight; 
       }
       
-      const dt = (timestamp - startTime) / 1000; // time in seconds
-      const cw = canvas.width;
-      const ch = canvas.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
 
-      ctx.clearRect(0, 0, cw, ch);
-
-      // We divide the canvas into 3 horizontal sections
-      const leftCx = cw * (1/6);
-      const midCx = cw * (1/2);
-      const rightCx = cw * (5/6);
-      const cy = ch / 2;
-
-      // ==========================================
-      // 1. THE PENDULUM (Left)
-      // ==========================================
-      const pendLen = 80;
-      const angle = Math.sin(dt * 3) * (Math.PI / 3); // Oscillate
-      const pivotX = leftCx;
-      const pivotY = cy - 40;
-      const bobX = pivotX + Math.sin(angle) * pendLen;
-      const bobY = pivotY + Math.cos(angle) * pendLen;
-
-      // String
-      ctx.beginPath();
-      ctx.moveTo(pivotX, pivotY);
-      ctx.lineTo(bobX, bobY);
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Pivot
-      ctx.beginPath();
-      ctx.arc(pivotX, pivotY, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fill();
-
-      // Bob
-      ctx.beginPath();
-      ctx.arc(bobX, bobY, 15, 0, Math.PI * 2);
-      ctx.fillStyle = '#3b82f6';
-      ctx.fill();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#3b82f6';
-      ctx.fill();
-      ctx.shadowBlur = 0; // reset
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText("Rhythm", leftCx, cy + 80);
-
-      // ==========================================
-      // 2. THE SAND CLOCK / HOURGLASS (Middle)
-      // ==========================================
-      const hgW = 40;
-      const hgH = 60;
+      ctx.save();
+      ctx.translate(cx, cy);
       
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 3;
+      ctx.fillStyle = "#cbd5e1"; 
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+      ctx.rotate(state.angle);
+
+      ctx.strokeStyle = "#64748b"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(params.r, 0); ctx.stroke();
+
+      const particleX = params.r;
+      const particleY = 0;
       
-      // Top Triangle
-      ctx.beginPath();
-      ctx.moveTo(midCx - hgW, cy - hgH);
-      ctx.lineTo(midCx + hgW, cy - hgH);
-      ctx.lineTo(midCx, cy);
-      ctx.closePath();
-      ctx.stroke();
-
-      // Bottom Triangle
-      ctx.beginPath();
-      ctx.moveTo(midCx, cy);
-      ctx.lineTo(midCx - hgW, cy + hgH);
-      ctx.lineTo(midCx + hgW, cy + hgH);
-      ctx.closePath();
-      ctx.stroke();
-
-      // Sand Logic (fills bottom, empties top over 10 seconds)
-      const fillRatio = Math.min(dt / 10, 1); 
+      ctx.fillStyle = "#3b82f6";
+      ctx.beginPath(); 
+      ctx.arc(particleX, particleY, 8 + params.m * 2, 0, Math.PI*2); 
+      ctx.fill();
       
-      ctx.fillStyle = '#fbbf24';
-      // Top Sand
-      if (fillRatio < 1) {
-        const topSandH = hgH * (1 - fillRatio);
-        const topSandW = hgW * (1 - fillRatio);
-        ctx.beginPath();
-        ctx.moveTo(midCx - topSandW, cy - topSandH);
-        ctx.lineTo(midCx + topSandW, cy - topSandH);
-        ctx.lineTo(midCx, cy);
-        ctx.fill();
-        
-        // Falling sand stream
-        ctx.beginPath();
-        ctx.moveTo(midCx, cy);
-        ctx.lineTo(midCx, cy + hgH);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#fbbf24';
-        ctx.stroke();
-      }
+      ctx.fillStyle = "white";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("m", particleX, particleY + 4);
 
-      // Bottom Sand
-      const botSandH = hgH * fillRatio;
-      const botSandW = hgW * fillRatio;
-      ctx.beginPath();
-      ctx.moveTo(midCx - botSandW, cy + hgH);
-      ctx.lineTo(midCx + botSandW, cy + hgH);
-      ctx.lineTo(midCx, cy + hgH - botSandH);
-      ctx.fill();
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText("Entropy", midCx, cy + 90);
-
-      // ==========================================
-      // 3. BOUNCING BALL IN BOX (Right)
-      // ==========================================
-      const boxSize = 100;
-      const boxLeft = rightCx - boxSize / 2;
-      const boxTop = cy - boxSize / 2;
-
-      // Initialize ball pos if first frame
-      if (ball.x === 0 && ball.y === 0) {
-        ball.x = rightCx;
-        ball.y = cy;
-      }
-
-      // Physics step for ball (delta time approx 0.016 for 60fps)
-      const step = 0.016; 
-      ball.x += ball.vx * step;
-      ball.y += ball.vy * step;
-
-      // Bounce Logic
-      if (ball.x - ball.r < boxLeft) { ball.x = boxLeft + ball.r; ball.vx *= -1; }
-      if (ball.x + ball.r > boxLeft + boxSize) { ball.x = boxLeft + boxSize - ball.r; ball.vx *= -1; }
-      if (ball.y - ball.r < boxTop) { ball.y = boxTop + ball.r; ball.vy *= -1; }
-      if (ball.y + ball.r > boxTop + boxSize) { ball.y = boxTop + boxSize - ball.r; ball.vy *= -1; }
-
-      // Draw Box
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(boxLeft, boxTop, boxSize, boxSize);
-
-      // Draw Ball
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-      ctx.fillStyle = '#ec4899'; // pink
-      ctx.fill();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#ec4899';
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Draw trail effect (simple)
-      ctx.beginPath();
-      ctx.arc(ball.x - ball.vx*step*3, ball.y - ball.vy*step*3, ball.r*0.6, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(236, 72, 153, 0.3)';
-      ctx.fill();
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText("Dynamics", rightCx, cy + 80);
-
-      animationFrameId = requestAnimationFrame(render);
+      drawArrow(ctx, particleX, particleY, 0, params.f, "#fbbf24");
+      ctx.restore();
+      
+      animationFrameId = requestAnimationFrame(loop);
     }
 
-    animationFrameId = requestAnimationFrame(render);
+    updateParams();
+    animationFrameId = requestAnimationFrame(loop);
 
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [phase]);
+    return () => {
+      isActive = false;
+      cancelAnimationFrame(animationFrameId);
+      listeners.forEach(l => l.el.removeEventListener(l.type, l.fn));
+    };
+  }, [simId]);
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-indigo-500 overflow-hidden text-white mb-8 flex flex-col items-center justify-center min-h-[500px] relative">
-      
-      {/* Background ambient light */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"></div>
-
-      {/* PHASE 1: The Quote */}
-      <div 
-        className={`absolute inset-0 flex flex-col items-center justify-center p-12 text-center transition-all duration-1000 transform
-          ${phase === 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
-          ${phase > 1 ? '-translate-y-10' : ''}
-        `}
-      >
-        <h2 className="text-3xl md:text-5xl font-serif italic text-white leading-relaxed tracking-wide drop-shadow-lg">
-          "Physics is a knowledge to know how things were and how things will be."
-        </h2>
+    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-purple-500 overflow-hidden text-white mb-8">
+      <div className="mb-6">
+        <h3 className="text-2xl font-bold text-white">Rotasi Partikel Tunggal</h3>
+        <p className="text-purple-400 text-sm font-mono mt-1">Hukum II Newton untuk Rotasi</p>
       </div>
 
-      {/* PHASE 2 & 3: The Simulation Objects */}
-      <div 
-        className={`w-full flex-grow relative transition-all duration-1000 
-          ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
-        `}
-      >
-        <div className="absolute top-0 left-0 w-full text-center mt-4">
-          <h3 className="text-2xl font-bold text-indigo-300 tracking-widest uppercase text-sm mb-2">The Faces of Time</h3>
-          {phase < 3 ? (
-            <p className="text-slate-400 animate-pulse text-xs font-mono">Observing the timeline... Please wait.</p>
-          ) : (
-            <p className="text-emerald-400 text-xs font-mono font-bold">Timeline synchronized. You may proceed.</p>
-          )}
+      <div className="relative w-full h-[600px] bg-slate-900/50 rounded-xl overflow-hidden flex flex-col md:flex-row border border-white/10">
+        <div className="w-full md:w-80 p-6 flex flex-col gap-4 bg-slate-900/80 border-b md:border-b-0 md:border-r border-white/10 overflow-y-auto shrink-0 z-10">
+          <h2 className="text-lg font-bold text-green-400 mb-2">Parameter</h2>
+          <div className="flex flex-col gap-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1 text-slate-300">
+                <label className="text-blue-400">Massa (m)</label> <span id={`val-s-m-${simId}`}>2.0 kg</span>
+              </div>
+              <input type="range" id={`slider-s-m-${simId}`} className="sim-slider" min="0.5" max="10" step="0.5" defaultValue="2.0" />
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1 text-slate-300">
+                <label>Jari-jari (r)</label> <span id={`val-s-r-${simId}`}>150 px</span>
+              </div>
+              <input type="range" id={`slider-s-r-${simId}`} className="sim-slider" min="50" max="250" step="10" defaultValue="150" />
+            </div>
+            <div className="w-full h-px bg-white/10 my-1"></div>
+            <div>
+              <div className="flex justify-between text-sm mb-1 text-slate-300">
+                <label className="text-orange-400">Gaya Tangensial (F)</label> <span id={`val-s-f-${simId}`}>0.0 N</span>
+              </div>
+              <input type="range" id={`slider-s-f-${simId}`} className="sim-slider" min="-20" max="20" step="0.5" defaultValue="0.0" />
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1 text-slate-300">
+                <label>Hambatan Udara</label> <span id={`val-s-damp-${simId}`}>0.00</span>
+              </div>
+              <input type="range" id={`slider-s-damp-${simId}`} className="sim-slider" min="0" max="1" step="0.01" defaultValue="0.0" />
+            </div>
+            <button id={`btn-reset-${simId}`} className="mt-4 py-2 px-4 bg-red-500/80 hover:bg-red-500 text-white rounded font-bold transition-colors">
+              Reset Posisi
+            </button>
+          </div>
         </div>
-        
-        <canvas ref={canvasRef} className="w-full h-full block min-h-[400px]"></canvas>
-      </div>
 
+        <div className="flex-grow relative h-full w-full bg-slate-800/20">
+          <div className="absolute top-4 right-4 p-4 bg-slate-900/80 rounded-lg text-xs font-mono border border-slate-700 pointer-events-none z-10 backdrop-blur-sm shadow-xl min-w-[200px]">
+            <div className="flex justify-between text-emerald-400 font-bold mb-2 border-b border-slate-600 pb-1 gap-4">
+              <span>Status Partikel</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-400">
+              <span>Inersia (I):</span> <span id={`stat-s-inertia-${simId}`} className="text-right text-slate-200">0.0</span>
+              <span>Vel Sudut:</span> <span id={`stat-s-omega-${simId}`} className="text-right text-slate-200">0.0</span>
+              <span>Percepatan:</span> <span id={`stat-s-alpha-${simId}`} className="text-right text-purple-300">0.0</span>
+              <span className="text-white font-bold">Torsi:</span> <span id={`stat-s-torque-${simId}`} className="text-right text-white font-bold">0.0 Nm</span>
+            </div>
+          </div>
+          <canvas id={`sim-canvas-${simId}`} className="w-full h-full block"></canvas>
+        </div>
+      </div>
     </div>
   );
 }
