@@ -1,6 +1,8 @@
 export const simulationData = {
   // Course 1: The Concept of Time
   "c1-sim1": { name: "The Flow of Time", passingGrade: 0, autoComplete: false }, // Set to false to lock the user!
+  "c1-sim2": { name: "Time Measurement", passingGrade: 0, autoComplete: true },
+  "c1-sim3": { name: "Time in Motion", passingGrade: 0, autoComplete: true },
 
   // Course 2: Thermodynamics & Waves
   "c2-sim1": { name: "Sistem Banyak Partikel", passingGrade: 0, autoComplete: true },
