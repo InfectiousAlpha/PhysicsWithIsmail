@@ -1,8 +1,6 @@
 export const simulationData = {
-  // Course 1: Introduction to Physics
-  "c1-sim1": { name: "Rotasi Partikel Tunggal", passingGrade: 0, autoComplete: true },
-  "c1-sim2": { name: "Sistem Rigid Rotor 2D", passingGrade: 0, autoComplete: true },
-  "c1-sim3": { name: "Sistem Rigid Rotor 2D (Lanjutan)", passingGrade: 0, autoComplete: true },
+  // Course 1: The Concept of Time
+  "c1-sim1": { name: "The Flow of Time", passingGrade: 0, autoComplete: false }, // Set to false to lock the user!
 
   // Course 2: Thermodynamics & Waves
   "c2-sim1": { name: "Sistem Banyak Partikel", passingGrade: 0, autoComplete: true },
