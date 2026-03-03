@@ -258,15 +258,6 @@ export default function Course1Sim1({ simId, onComplete }) {
           ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
         `}
       >
-        <div className="w-full text-center mb-2 shrink-0">
-          <h3 className="text-xl md:text-2xl font-bold text-indigo-300 tracking-widest uppercase mb-1">The Faces of Time</h3>
-          {phase < 3 ? (
-            <p className="text-slate-400 animate-pulse text-xs font-mono">Observing the timeline... Please wait.</p>
-          ) : (
-            <p className="text-emerald-400 text-xs font-mono font-bold">Timeline synchronized. You may proceed.</p>
-          )}
-        </div>
-        
         <canvas ref={canvasRef} className="w-full flex-grow block min-h-[300px]"></canvas>
       </div>
 
