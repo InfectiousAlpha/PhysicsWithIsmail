@@ -36,7 +36,7 @@ export const courses = [
     requiredLevel: 0, 
     unlocksLevel: 1,
     category: 'math',
-    passingGrade: 50
+    passingGrade: 50 // Requires a mean score of at least 50 to pass
   },
   {
     id: 'm2',
@@ -57,18 +57,12 @@ export const courses = [
     passingGrade: 50
   },
   {
-    id: '1', // ... existing code ...
-    category: 'physics',
-    passingGrade: 0 
-  },
-  {
-    id: '2',
-    title: 'Course 2: Time and Position',
-    description: 'Learn how to determine the position of an object in time, and graph its motion.',
-    requiredLevel: 1,
-    unlocksLevel: 2,
-    category: 'physics',
-    passingGrade: 0
-  },
-  {
-    id: '3', // ... existing code ...
+    id: 'm4',
+    title: 'Math 4: Pre-Algebra',
+    description: 'Introduction to order of operations and simple calculations.',
+    requiredLevel: 3,
+    unlocksLevel: 4,
+    category: 'math',
+    passingGrade: 50
+  }
+];
