@@ -7,8 +7,8 @@ export default function Course1Sim1({ simId, onComplete }) {
   const canvasRef = useRef(null);
   
   // Timings
-  const QUOTE_IN_TIME = 1000;
-  const SIM_IN_TIME = 5000;
+  const QUOTE_IN_TIME = 500;
+  const SIM_IN_TIME = 2500; 
   const ANIMATION_DURATION = 6000; // How long the canvas animates before unlocking
   const EXTRA_WAIT = 2000;
 
@@ -20,7 +20,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       if (isMounted) setPhase(1);
     }, QUOTE_IN_TIME);
 
-    // 2. Hide Quote, Show Simulation Objects
+    // 2. Show Simulation Objects (Quote remains)
     setTimeout(() => {
       if (isMounted) setPhase(2);
     }, SIM_IN_TIME);
@@ -65,46 +65,55 @@ export default function Course1Sim1({ simId, onComplete }) {
       const leftCx = cw * (1/6);
       const midCx = cw * (1/2);
       const rightCx = cw * (5/6);
-      const cy = ch / 2;
+      
+      // Move the centers down to accommodate the quote at the top
+      const cy = ch / 2 + 10;
 
       // ==========================================
-      // 1. THE PENDULUM (Left)
+      // 1. DAY/NIGHT CYCLE (Left)
       // ==========================================
-      const pendLen = 80;
-      const angle = Math.sin(dt * 3) * (Math.PI / 3); // Oscillate
-      const pivotX = leftCx;
-      const pivotY = cy - 40;
-      const bobX = pivotX + Math.sin(angle) * pendLen;
-      const bobY = pivotY + Math.cos(angle) * pendLen;
+      const orbitR = 60;
+      const dnAngle = dt * 1.5;
+      const sunX = leftCx + Math.cos(dnAngle) * orbitR;
+      const sunY = cy + Math.sin(dnAngle) * orbitR;
+      const moonX = leftCx + Math.cos(dnAngle + Math.PI) * orbitR;
+      const moonY = cy + Math.sin(dnAngle + Math.PI) * orbitR;
 
-      // String
+      // Orbit path
       ctx.beginPath();
-      ctx.moveTo(pivotX, pivotY);
-      ctx.lineTo(bobX, bobY);
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2;
+      ctx.arc(leftCx, cy, orbitR, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Pivot
+      // Earth
       ctx.beginPath();
-      ctx.arc(pivotX, pivotY, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fill();
-
-      // Bob
-      ctx.beginPath();
-      ctx.arc(bobX, bobY, 15, 0, Math.PI * 2);
+      ctx.arc(leftCx, cy, 18, 0, Math.PI * 2);
       ctx.fillStyle = '#3b82f6';
       ctx.fill();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#3b82f6';
+
+      // Sun
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 12, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#fbbf24';
       ctx.fill();
-      ctx.shadowBlur = 0; // reset
+      ctx.shadowBlur = 0;
+
+      // Moon
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#e2e8f0';
+      ctx.fill();
+      ctx.shadowBlur = 0;
 
       ctx.fillStyle = '#64748b';
       ctx.font = '14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText("Rhythm", leftCx, cy + 80);
+      ctx.fillText("Cycles", leftCx, cy + 100);
 
       // ==========================================
       // 2. THE SAND CLOCK / HOURGLASS (Middle)
@@ -166,7 +175,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       ctx.fillStyle = '#64748b';
       ctx.font = '14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText("Entropy", midCx, cy + 90);
+      ctx.fillText("Entropy", midCx, cy + 100);
 
       // ==========================================
       // 3. BOUNCING BALL IN BOX (Right)
@@ -216,7 +225,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       ctx.fillStyle = '#64748b';
       ctx.font = '14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText("Dynamics", rightCx, cy + 80);
+      ctx.fillText("Dynamics", rightCx, cy + 100);
 
       animationFrameId = requestAnimationFrame(render);
     }
@@ -227,31 +236,30 @@ export default function Course1Sim1({ simId, onComplete }) {
   }, [phase]);
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-indigo-500 overflow-hidden text-white mb-8 flex flex-col items-center justify-center min-h-[500px] relative">
+    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-indigo-500 overflow-hidden text-white flex-grow flex flex-col relative w-full h-full min-h-[600px]">
       
       {/* Background ambient light */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none z-0"></div>
 
       {/* PHASE 1: The Quote */}
       <div 
-        className={`absolute inset-0 flex flex-col items-center justify-center p-12 text-center transition-all duration-1000 transform
-          ${phase === 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
-          ${phase > 1 ? '-translate-y-10' : ''}
+        className={`w-full flex flex-col items-center justify-center px-4 md:px-12 text-center transition-all duration-1000 transform z-10 pt-4 pb-8 shrink-0
+          ${phase >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}
         `}
       >
-        <h2 className="text-3xl md:text-5xl font-serif italic text-white leading-relaxed tracking-wide drop-shadow-lg">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif italic text-white leading-relaxed tracking-wide drop-shadow-lg max-w-4xl">
           "Physics is a knowledge to know how things were and how things will be."
         </h2>
       </div>
 
       {/* PHASE 2 & 3: The Simulation Objects */}
       <div 
-        className={`w-full flex-grow relative transition-all duration-1000 
+        className={`w-full flex-grow relative transition-all duration-1000 flex flex-col z-10
           ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
         `}
       >
-        <div className="absolute top-0 left-0 w-full text-center mt-4">
-          <h3 className="text-2xl font-bold text-indigo-300 tracking-widest uppercase text-sm mb-2">The Faces of Time</h3>
+        <div className="w-full text-center mb-2 shrink-0">
+          <h3 className="text-xl md:text-2xl font-bold text-indigo-300 tracking-widest uppercase mb-1">The Faces of Time</h3>
           {phase < 3 ? (
             <p className="text-slate-400 animate-pulse text-xs font-mono">Observing the timeline... Please wait.</p>
           ) : (
@@ -259,7 +267,7 @@ export default function Course1Sim1({ simId, onComplete }) {
           )}
         </div>
         
-        <canvas ref={canvasRef} className="w-full h-full block min-h-[400px]"></canvas>
+        <canvas ref={canvasRef} className="w-full flex-grow block min-h-[300px]"></canvas>
       </div>
 
     </div>
