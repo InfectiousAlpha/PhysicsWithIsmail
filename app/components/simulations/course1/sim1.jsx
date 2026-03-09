@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 
 export default function Course1Sim1({ simId, onComplete }) {
   const [phase, setPhase] = useState(0); 
+  const [isAnimating, setIsAnimating] = useState(false); // Separate trigger for the animation
   const canvasRef = useRef(null);
   const initialized = useRef(false);
   
@@ -26,7 +27,10 @@ export default function Course1Sim1({ simId, onComplete }) {
 
     // 2. Move Quote to Top & Show Simulation Objects
     setTimeout(() => {
-      if (isMounted) setPhase(2);
+      if (isMounted) {
+        setPhase(2);
+        setIsAnimating(true); // Start the animation permanently
+      }
     }, SIM_IN_TIME);
 
     // 3. Unlock Next Button (Animation keeps playing)
@@ -41,7 +45,8 @@ export default function Course1Sim1({ simId, onComplete }) {
   }, [onComplete]);
 
   useEffect(() => {
-    if (phase < 2) return; // Don't draw until we reach phase 2
+    // Rely on isAnimating so the phase=3 update doesn't restart the loop
+    if (!isAnimating) return; 
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -293,7 +298,7 @@ export default function Course1Sim1({ simId, onComplete }) {
     animationFrameId = requestAnimationFrame(render);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [phase]);
+  }, [isAnimating]);
 
   return (
     <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-indigo-500 overflow-hidden text-white flex-grow flex flex-col relative w-full h-full min-h-[600px]">
