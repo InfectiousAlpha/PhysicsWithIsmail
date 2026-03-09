@@ -3,33 +3,33 @@
 import { useEffect, useState, useRef } from 'react';
 
 export default function Course1Sim1({ simId, onComplete }) {
-  const [phase, setPhase] = useState(0); // 0: Start, 1: Quote Fade In, 2: Sim Fade In, 3: Unlocked
+  const [phase, setPhase] = useState(0); 
   const canvasRef = useRef(null);
   
-  // Timings
+  // Timings - Made faster as requested
   const QUOTE_IN_TIME = 500;
-  const SIM_IN_TIME = 2500; 
-  const ANIMATION_DURATION = 6000; // How long the canvas animates before unlocking
-  const EXTRA_WAIT = 2000;
+  const SIM_IN_TIME = 2000; // Reduced from 2500
+  const ANIMATION_DURATION = 2000; // Reduced from 6000
+  const EXTRA_WAIT = 500; // Reduced from 2000
 
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Show Quote
+    // 1. Show Quote centered
     setTimeout(() => {
       if (isMounted) setPhase(1);
     }, QUOTE_IN_TIME);
 
-    // 2. Show Simulation Objects (Quote remains)
+    // 2. Move Quote to Top & Show Simulation Objects
     setTimeout(() => {
       if (isMounted) setPhase(2);
     }, SIM_IN_TIME);
 
-    // 3. Unlock Next Button (Animation + 2 seconds)
+    // 3. Unlock Next Button (Animation keeps playing)
     setTimeout(() => {
       if (isMounted) {
         setPhase(3);
-        if (onComplete) onComplete(); // This tells SimulationCarousel to enable the Next button!
+        if (onComplete) onComplete(); // Enables Next button
       }
     }, SIM_IN_TIME + ANIMATION_DURATION + EXTRA_WAIT);
 
@@ -66,8 +66,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       const midCx = cw * (1/2);
       const rightCx = cw * (5/6);
       
-      // Move the centers down to accommodate the quote at the top
-      const cy = ch / 2 + 10;
+      const cy = ch / 2;
 
       // ==========================================
       // 1. DAY/NIGHT CYCLE (Left)
@@ -140,10 +139,13 @@ export default function Course1Sim1({ simId, onComplete }) {
       ctx.closePath();
       ctx.stroke();
 
-      // Sand Logic (fills bottom, empties top over 10 seconds)
-      const fillRatio = Math.min(dt / 10, 1); 
+      // Sand Logic (Loops every 5 seconds)
+      const cycleTime = 5;
+      const currentCycleTime = dt % cycleTime;
+      const fillRatio = Math.min(currentCycleTime / cycleTime, 1); 
       
       ctx.fillStyle = '#fbbf24';
+      
       // Top Sand
       if (fillRatio < 1) {
         const topSandH = hgH * (1 - fillRatio);
@@ -216,7 +218,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Draw trail effect (simple)
+      // Draw trail effect
       ctx.beginPath();
       ctx.arc(ball.x - ball.vx*step*3, ball.y - ball.vy*step*3, ball.r*0.6, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(236, 72, 153, 0.3)';
@@ -241,20 +243,22 @@ export default function Course1Sim1({ simId, onComplete }) {
       {/* Background ambient light */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none z-0"></div>
 
-      {/* PHASE 1: The Quote */}
+      {/* PHASE 1 & 2: The Quote - centered then moves to top without shrinking */}
       <div 
-        className={`w-full flex flex-col items-center justify-center px-4 md:px-12 text-center transition-all duration-1000 transform z-10 pt-4 pb-8 shrink-0
-          ${phase >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}
+        className={`absolute left-0 w-full flex justify-center px-8 transition-all duration-1000 ease-in-out transform z-20 pointer-events-none
+          ${phase === 0 ? 'opacity-0 top-1/2 -translate-y-1/2' : ''}
+          ${phase === 1 ? 'opacity-100 top-1/2 -translate-y-1/2' : ''}
+          ${phase >= 2 ? 'opacity-100 top-8 translate-y-0' : ''}
         `}
       >
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif italic text-white leading-relaxed tracking-wide drop-shadow-lg max-w-4xl">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif italic text-white drop-shadow-lg max-w-4xl text-center">
           "Physics is a knowledge to know how things were and how things will be."
         </h2>
       </div>
 
       {/* PHASE 2 & 3: The Simulation Objects */}
       <div 
-        className={`w-full flex-grow relative transition-all duration-1000 flex flex-col z-10
+        className={`w-full flex-grow relative transition-all duration-1000 flex flex-col z-10 mt-24
           ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
         `}
       >
