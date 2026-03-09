@@ -133,25 +133,41 @@ export default function Course1Sim1({ simId, onComplete }) {
       const hgW = 40;
       const hgH = 60;
       
-      const cycleDuration = 4; // 4 seconds of sand falling
-      const flipDuration = 1.5; // 1.5 seconds of hourglass rotating
-      const totalCycle = cycleDuration + flipDuration;
+      const tWait = 0.5;   // wait with sand at bottom
+      const tFlip = 1.0;   // time to rotate 180 degrees
+      const tFall = 4.0;   // time for sand to fall
+      const totalCycle = tWait + tFlip + tFall;
       
-      const cycleCount = Math.floor(dt / totalCycle);
-      const localTime = dt % totalCycle;
+      const tLocal = dt % totalCycle;
       
-      let fillRatio = 0;
-      let flipAngle = cycleCount * Math.PI;
+      let flipAngle = 0;
+      let topFill = 0;
+      let botFill = 1;
+      let isFalling = false;
 
-      // Handle falling vs flipping states
-      if (localTime < cycleDuration) {
-        fillRatio = localTime / cycleDuration;
+      // State Machine for seamless looping without snapping
+      if (tLocal < tWait) {
+        // Phase 1: Resting at bottom
+        flipAngle = 0;
+        topFill = 0;
+        botFill = 1;
+      } else if (tLocal < tWait + tFlip) {
+        // Phase 2: Flipping
+        const t = (tLocal - tWait) / tFlip;
+        // Ease in-out calculation for smooth rotation
+        const easeT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        flipAngle = easeT * Math.PI;
+        topFill = 0;
+        botFill = 1; // Sand stays visually in the bottom chamber as it flips up
       } else {
-        fillRatio = 1.0;
-        // Easing function for smooth rotation
-        let t = (localTime - cycleDuration) / flipDuration;
-        let easeT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-        flipAngle += easeT * Math.PI;
+        // Phase 3: Falling 
+        // We reset the angle back to 0. A 180 deg (PI) rotated symmetric glass 
+        // is visually identical to a 0 deg glass. We then move the sand to top.
+        flipAngle = 0; 
+        isFalling = true;
+        const f = (tLocal - (tWait + tFlip)) / tFall;
+        topFill = 1 - f;
+        botFill = f;
       }
 
       // Isolate the hourglass transform so it spins from its center
@@ -162,7 +178,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 3;
       
-      // Top Triangle (relative to 0,0)
+      // Top Triangle Glass (relative to 0,0)
       ctx.beginPath();
       ctx.moveTo(-hgW, -hgH);
       ctx.lineTo(hgW, -hgH);
@@ -170,7 +186,7 @@ export default function Course1Sim1({ simId, onComplete }) {
       ctx.closePath();
       ctx.stroke();
 
-      // Bottom Triangle (relative to 0,0)
+      // Bottom Triangle Glass (relative to 0,0)
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(-hgW, hgH);
@@ -180,33 +196,38 @@ export default function Course1Sim1({ simId, onComplete }) {
 
       ctx.fillStyle = '#fbbf24';
       
-      // Top Sand
-      if (fillRatio < 1) {
-        const topSandH = hgH * (1 - fillRatio);
-        const topSandW = hgW * (1 - fillRatio);
+      // Draw Top Sand (pools towards the central hole)
+      if (topFill > 0) {
+        const topSandH = hgH * topFill;
+        const topSandW = hgW * topFill;
         ctx.beginPath();
         ctx.moveTo(-topSandW, -topSandH);
         ctx.lineTo(topSandW, -topSandH);
         ctx.lineTo(0, 0);
         ctx.fill();
-        
-        // Falling sand stream
+      }
+
+      // Draw Bottom Sand (piles up from the bottom)
+      if (botFill > 0) {
+        const botSandH = hgH * botFill;
+        const botSandW = hgW * botFill;
+        ctx.beginPath();
+        ctx.moveTo(-botSandW, hgH);
+        ctx.lineTo(botSandW, hgH);
+        ctx.lineTo(0, hgH - botSandH);
+        ctx.fill();
+      }
+
+      // Draw falling sand stream
+      if (isFalling) {
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(0, hgH);
+        // Stream connects center hole down to the peak of the bottom pile
+        ctx.lineTo(0, hgH - (hgH * botFill));
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#fbbf24';
         ctx.stroke();
       }
-
-      // Bottom Sand
-      const botSandH = hgH * fillRatio;
-      const botSandW = hgW * fillRatio;
-      ctx.beginPath();
-      ctx.moveTo(-botSandW, hgH);
-      ctx.lineTo(botSandW, hgH);
-      ctx.lineTo(0, hgH - botSandH);
-      ctx.fill();
 
       // Restore canvas context to draw everything else straight
       ctx.restore();
