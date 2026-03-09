@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 export default function Course1Sim1({ simId, onComplete }) {
   const [phase, setPhase] = useState(0); 
   const canvasRef = useRef(null);
+  const initialized = useRef(false);
   
   // Timings - Made faster as requested
   const QUOTE_IN_TIME = 500;
@@ -13,6 +14,9 @@ export default function Course1Sim1({ simId, onComplete }) {
   const EXTRA_WAIT = 500; // Reduced from 2000
 
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     let isMounted = true;
 
     // 1. Show Quote centered

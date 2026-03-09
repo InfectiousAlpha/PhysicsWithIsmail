@@ -9,6 +9,7 @@ export default function Course1Sim2({ simId, onComplete }) {
   const canvasRef = useRef(null);
   const conceptRef = useRef(0);
   const conceptStartTimeRef = useRef(Date.now());
+  const initialized = useRef(false);
   
   const QUOTE_IN_TIME = 500;
   const SIM_IN_TIME = 3500; 
@@ -17,6 +18,9 @@ export default function Course1Sim2({ simId, onComplete }) {
 
   // Handles Phase Progression
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     let isMounted = true;
 
     setTimeout(() => { if (isMounted) setPhase(1); }, QUOTE_IN_TIME);
@@ -32,8 +36,9 @@ export default function Course1Sim2({ simId, onComplete }) {
   }, [onComplete]);
 
   // Alternates concepts every 6 seconds once simulation reveals
+  const isSimRevealed = phase >= 2;
   useEffect(() => {
-    if (phase < 2) return;
+    if (!isSimRevealed) return;
     
     conceptStartTimeRef.current = Date.now();
     
@@ -47,7 +52,7 @@ export default function Course1Sim2({ simId, onComplete }) {
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [phase]);
+  }, [isSimRevealed]);
 
   // Main Canvas Render Loop
   useEffect(() => {
