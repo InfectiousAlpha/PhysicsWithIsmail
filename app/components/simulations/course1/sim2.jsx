@@ -82,7 +82,7 @@ export default function Course1Sim2({ simId, onComplete }) {
         // ==========================================
         // CONCEPT 0: VELOCITY & MOVING BOX
         // ==========================================
-        const groundY = ch - 80;
+        const groundY = ch - 60; // Slightly lower ground for compactness
         const speed = 3; 
 
         // Update ground offset (moving left to simulate box moving right)
@@ -105,8 +105,8 @@ export default function Course1Sim2({ simId, onComplete }) {
           ctx.stroke();
         }
 
-        // Draw Box
-        const boxSize = 100;
+        // Draw Box (Made smaller for compact layout)
+        const boxSize = 80; 
         const boxX = cw / 2 - boxSize / 2;
         const boxY = groundY - boxSize;
 
@@ -123,29 +123,31 @@ export default function Course1Sim2({ simId, onComplete }) {
         ctx.lineTo(boxX, boxY + boxSize);
         ctx.stroke();
 
-        // Draw Velocity Arrow
-        const arrowStartX = boxX + boxSize / 2;
-        const arrowStartY = boxY - 30;
-        const arrowLength = 80;
+        // Draw Velocity Arrow perfectly centered inside the box
+        const arrowLength = 60;
+        const arrowStartX = boxX + (boxSize / 2) - (arrowLength / 2);
+        const arrowStartY = boxY + (boxSize / 2);
 
         ctx.strokeStyle = '#fbbf24'; 
         ctx.fillStyle = '#fbbf24';
         ctx.lineWidth = 4;
 
+        // Line
         ctx.beginPath();
         ctx.moveTo(arrowStartX, arrowStartY);
-        ctx.lineTo(arrowStartX + arrowLength, arrowStartY);
+        ctx.lineTo(arrowStartX + arrowLength - 12, arrowStartY);
         ctx.stroke();
 
+        // Arrow Head
         ctx.beginPath();
-        ctx.moveTo(arrowStartX + arrowLength + 10, arrowStartY);
-        ctx.lineTo(arrowStartX + arrowLength - 10, arrowStartY - 10);
-        ctx.lineTo(arrowStartX + arrowLength - 10, arrowStartY + 10);
+        ctx.moveTo(arrowStartX + arrowLength - 12, arrowStartY - 8);
+        ctx.lineTo(arrowStartX + arrowLength, arrowStartY);
+        ctx.lineTo(arrowStartX + arrowLength - 12, arrowStartY + 8);
         ctx.fill();
 
-        ctx.font = 'italic 20px serif';
+        ctx.font = 'italic 18px serif';
         ctx.fillStyle = '#fbbf24';
-        ctx.fillText('v', arrowStartX + arrowLength / 2 - 5, arrowStartY - 10);
+        ctx.fillText('v', arrowStartX + arrowLength / 2 - 4, arrowStartY - 12);
 
       } else {
         // ==========================================
@@ -153,7 +155,7 @@ export default function Course1Sim2({ simId, onComplete }) {
         // ==========================================
         const isSnapped = timeInConcept > 4500; // Snaps at 4.5 seconds
         
-        const beamY = ch / 2;
+        const beamY = ch / 2 - 10;
         const leftX = cw * 0.2;
         const rightX = cw * 0.8;
         const midX = cw / 2;
@@ -178,9 +180,9 @@ export default function Course1Sim2({ simId, onComplete }) {
 
           // Explosion / Snap Text
           ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 28px sans-serif';
+          ctx.font = 'bold 24px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('💥 SNAP!', midX, beamY - 20);
+          ctx.fillText('💥 SNAP!', midX, beamY - 25);
         } else {
           // Calculate increasing amplitude over time
           let amplitude = Math.min((timeInConcept / 4500) * 45, 45); 
@@ -197,21 +199,25 @@ export default function Course1Sim2({ simId, onComplete }) {
           ctx.lineWidth = 10 - (timeInConcept / 4500) * 4;
           ctx.stroke();
 
-          // Draw Downward Force Arrow
-          const arrowY = beamY + bendY - 60;
+          // Draw Downward Force Arrow precisely touching the middle of the beam
+          const tipY = beamY + bendY; // Exact middle vertex of the curved beam
+          const arrowHeight = 45;
+          const arrowTop = tipY - arrowHeight;
+
           ctx.fillStyle = '#ef4444';
-          ctx.fillRect(midX - 3, arrowY, 6, 40);
+          ctx.fillRect(midX - 3, arrowTop, 6, arrowHeight - 12);
+          
           ctx.beginPath();
-          ctx.moveTo(midX - 15, arrowY + 40);
-          ctx.lineTo(midX + 15, arrowY + 40);
-          ctx.lineTo(midX, arrowY + 60);
+          ctx.moveTo(midX - 12, tipY - 12);
+          ctx.lineTo(midX + 12, tipY - 12);
+          ctx.lineTo(midX, tipY); // Tip touches the line
           ctx.fill();
         }
         
         // Draw Anchor Points
         ctx.fillStyle = '#94a3b8';
-        ctx.beginPath(); ctx.arc(leftX, beamY, 12, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(rightX, beamY, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(leftX, beamY, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(rightX, beamY, 10, 0, Math.PI * 2); ctx.fill();
       }
 
       animationFrameId = requestAnimationFrame(render);
@@ -223,20 +229,20 @@ export default function Course1Sim2({ simId, onComplete }) {
   }, [phase]);
 
   return (
-    <div className="glass-panel rounded-2xl border-l-4 border-l-sky-500 overflow-hidden text-white flex-grow flex flex-col relative w-full h-full min-h-[600px]">
+    <div className="glass-panel rounded-2xl border-l-4 border-l-sky-500 overflow-hidden text-white flex-grow flex flex-col relative w-full h-full min-h-[450px]">
       
       {/* Background ambient light */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 blur-[100px] rounded-full pointer-events-none z-0"></div>
 
-      {/* PHASE 1 & 2: The Quote - Moves up but no longer shrinks in size */}
+      {/* PHASE 1 & 2: The Quote - Made slightly more compact */}
       <div 
-        className={`absolute left-0 w-full flex justify-center px-8 transition-all duration-1000 ease-in-out transform z-20 pointer-events-none
+        className={`absolute left-0 w-full flex justify-center px-4 transition-all duration-1000 ease-in-out transform z-20 pointer-events-none
           ${phase === 0 ? 'opacity-0 top-1/2 -translate-y-1/2 scale-95' : ''}
           ${phase === 1 ? 'opacity-100 top-1/2 -translate-y-1/2 scale-100' : ''}
-          ${phase >= 2 ? 'opacity-100 top-8 scale-100' : ''}
+          ${phase >= 2 ? 'opacity-100 top-6 scale-100' : ''}
         `}
       >
-        <h2 className={`font-serif italic text-center drop-shadow-lg tracking-wide transition-colors duration-1000 text-3xl md:text-4xl
+        <h2 className={`font-serif italic text-center drop-shadow-lg tracking-wide transition-colors duration-1000 text-2xl md:text-3xl
           ${phase >= 2 ? 'text-sky-200' : 'text-white'}
         `}>
           "Time is the most crucial aspect in physics"
@@ -245,23 +251,23 @@ export default function Course1Sim2({ simId, onComplete }) {
 
       {/* PHASE 2 & 3: The Alternating Concepts */}
       <div 
-        className={`w-full h-full mt-24 flex-grow flex flex-col md:flex-row relative z-10 transition-all duration-1000 delay-300
-          ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
+        className={`w-full h-full mt-16 flex-grow flex flex-col md:flex-row items-center relative z-10 transition-all duration-1000 delay-300
+          ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}
         `}
       >
         {/* Left Object: The Alternating Texts */}
-        <div className="w-full md:w-1/2 relative flex items-center justify-center p-8 md:p-12 min-h-[250px]">
+        <div className="w-full md:w-1/2 relative flex items-center justify-center p-6 min-h-[160px]">
           
-          <div className={`absolute transition-opacity duration-700 w-full flex justify-center md:justify-start px-8 md:px-12 ${activeConcept === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <h3 className="text-3xl md:text-4xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-sky-300 drop-shadow-sm text-center md:text-left">
+          <div className={`absolute transition-opacity duration-700 w-full flex justify-center md:justify-start px-6 md:px-10 ${activeConcept === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <h3 className="text-2xl md:text-3xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-sky-300 drop-shadow-sm text-center md:text-left">
               Velocity <span className="text-emerald-400">+</span> time <br />
               will get us <br />
               <span className="text-amber-400 border-b-4 border-amber-400 pb-1">where</span> a thing is.
             </h3>
           </div>
 
-          <div className={`absolute transition-opacity duration-700 w-full flex justify-center md:justify-start px-8 md:px-12 ${activeConcept === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <h3 className="text-3xl md:text-4xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-rose-300 drop-shadow-sm text-center md:text-left">
+          <div className={`absolute transition-opacity duration-700 w-full flex justify-center md:justify-start px-6 md:px-10 ${activeConcept === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <h3 className="text-2xl md:text-3xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-rose-300 drop-shadow-sm text-center md:text-left">
               Stress <span className="text-rose-400">+</span> time <br />
               will tell us if <br />
               a material will <span className="text-rose-400 border-b-4 border-rose-400 pb-1">snap</span>.
@@ -271,17 +277,17 @@ export default function Course1Sim2({ simId, onComplete }) {
         </div>
 
         {/* Right Object: The Alternating Canvas Illustrations */}
-        <div className="w-full md:w-1/2 relative min-h-[300px] flex items-center justify-center">
+        <div className="w-full md:w-1/2 relative min-h-[220px] flex items-center justify-center">
           <canvas ref={canvasRef} className="w-full h-full absolute inset-0"></canvas>
           
           {/* Concept 0 Overlay */}
-          <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700 backdrop-blur-sm text-xs text-slate-400 font-mono text-center transition-opacity duration-500 ${activeConcept === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700 backdrop-blur-sm text-xs text-slate-400 font-mono text-center transition-opacity duration-500 ${activeConcept === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             Relative Motion Engine Active <br/>
             <span className="text-sky-400 font-bold">Δx = v × Δt</span>
           </div>
 
           {/* Concept 1 Overlay */}
-          <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700 backdrop-blur-sm text-xs text-slate-400 font-mono text-center transition-opacity duration-500 ${activeConcept === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700 backdrop-blur-sm text-xs text-slate-400 font-mono text-center transition-opacity duration-500 ${activeConcept === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             Material Fatigue Engine Active <br/>
             <span className="text-rose-400 font-bold">Stress × Cycles = Rupture</span>
           </div>

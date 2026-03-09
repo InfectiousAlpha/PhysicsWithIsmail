@@ -73,45 +73,54 @@ export default function Course1Sim1({ simId, onComplete }) {
       const cy = ch / 2;
 
       // ==========================================
-      // 1. DAY/NIGHT CYCLE (Left)
+      // 1. DAY/NIGHT CYCLE (Left) - Sun, Earth, Moon
       // ==========================================
-      const orbitR = 60;
-      const dnAngle = dt * 1.5;
-      const sunX = leftCx + Math.cos(dnAngle) * orbitR;
-      const sunY = cy + Math.sin(dnAngle) * orbitR;
-      const moonX = leftCx + Math.cos(dnAngle + Math.PI) * orbitR;
-      const moonY = cy + Math.sin(dnAngle + Math.PI) * orbitR;
+      const sunX = leftCx;
+      const sunY = cy;
+      
+      const earthOrbitR = 60;
+      const earthAngle = dt * 1.0; // Earth orbits the Sun
+      const earthX = sunX + Math.cos(earthAngle) * earthOrbitR;
+      const earthY = sunY + Math.sin(earthAngle) * earthOrbitR;
 
-      // Orbit path
+      const moonOrbitR = 20;
+      const moonAngle = dt * 4.0; // Moon orbits the Earth
+      const moonX = earthX + Math.cos(moonAngle) * moonOrbitR;
+      const moonY = earthY + Math.sin(moonAngle) * moonOrbitR;
+
+      // Earth Orbit path
       ctx.beginPath();
-      ctx.arc(leftCx, cy, orbitR, 0, Math.PI * 2);
+      ctx.arc(sunX, sunY, earthOrbitR, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Earth
+      // Moon Orbit path (faint)
       ctx.beginPath();
-      ctx.arc(leftCx, cy, 18, 0, Math.PI * 2);
-      ctx.fillStyle = '#3b82f6';
-      ctx.fill();
+      ctx.arc(earthX, earthY, moonOrbitR, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.stroke();
 
       // Sun
       ctx.beginPath();
-      ctx.arc(sunX, sunY, 12, 0, Math.PI * 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.shadowBlur = 15;
+      ctx.arc(sunX, sunY, 18, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24'; // Yellow
+      ctx.shadowBlur = 20;
       ctx.shadowColor = '#fbbf24';
       ctx.fill();
       ctx.shadowBlur = 0;
 
+      // Earth
+      ctx.beginPath();
+      ctx.arc(earthX, earthY, 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#3b82f6'; // Blue
+      ctx.fill();
+
       // Moon
       ctx.beginPath();
-      ctx.arc(moonX, moonY, 8, 0, Math.PI * 2);
-      ctx.fillStyle = '#e2e8f0';
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#e2e8f0';
+      ctx.arc(moonX, moonY, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#e2e8f0'; // White/Gray
       ctx.fill();
-      ctx.shadowBlur = 0;
 
       ctx.fillStyle = '#64748b';
       ctx.font = '14px monospace';
@@ -124,30 +133,51 @@ export default function Course1Sim1({ simId, onComplete }) {
       const hgW = 40;
       const hgH = 60;
       
+      const cycleDuration = 4; // 4 seconds of sand falling
+      const flipDuration = 1.5; // 1.5 seconds of hourglass rotating
+      const totalCycle = cycleDuration + flipDuration;
+      
+      const cycleCount = Math.floor(dt / totalCycle);
+      const localTime = dt % totalCycle;
+      
+      let fillRatio = 0;
+      let flipAngle = cycleCount * Math.PI;
+
+      // Handle falling vs flipping states
+      if (localTime < cycleDuration) {
+        fillRatio = localTime / cycleDuration;
+      } else {
+        fillRatio = 1.0;
+        // Easing function for smooth rotation
+        let t = (localTime - cycleDuration) / flipDuration;
+        let easeT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        flipAngle += easeT * Math.PI;
+      }
+
+      // Isolate the hourglass transform so it spins from its center
+      ctx.save();
+      ctx.translate(midCx, cy);
+      ctx.rotate(flipAngle);
+
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 3;
       
-      // Top Triangle
+      // Top Triangle (relative to 0,0)
       ctx.beginPath();
-      ctx.moveTo(midCx - hgW, cy - hgH);
-      ctx.lineTo(midCx + hgW, cy - hgH);
-      ctx.lineTo(midCx, cy);
+      ctx.moveTo(-hgW, -hgH);
+      ctx.lineTo(hgW, -hgH);
+      ctx.lineTo(0, 0);
       ctx.closePath();
       ctx.stroke();
 
-      // Bottom Triangle
+      // Bottom Triangle (relative to 0,0)
       ctx.beginPath();
-      ctx.moveTo(midCx, cy);
-      ctx.lineTo(midCx - hgW, cy + hgH);
-      ctx.lineTo(midCx + hgW, cy + hgH);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-hgW, hgH);
+      ctx.lineTo(hgW, hgH);
       ctx.closePath();
       ctx.stroke();
 
-      // Sand Logic (Loops every 5 seconds)
-      const cycleTime = 5;
-      const currentCycleTime = dt % cycleTime;
-      const fillRatio = Math.min(currentCycleTime / cycleTime, 1); 
-      
       ctx.fillStyle = '#fbbf24';
       
       // Top Sand
@@ -155,15 +185,15 @@ export default function Course1Sim1({ simId, onComplete }) {
         const topSandH = hgH * (1 - fillRatio);
         const topSandW = hgW * (1 - fillRatio);
         ctx.beginPath();
-        ctx.moveTo(midCx - topSandW, cy - topSandH);
-        ctx.lineTo(midCx + topSandW, cy - topSandH);
-        ctx.lineTo(midCx, cy);
+        ctx.moveTo(-topSandW, -topSandH);
+        ctx.lineTo(topSandW, -topSandH);
+        ctx.lineTo(0, 0);
         ctx.fill();
         
         // Falling sand stream
         ctx.beginPath();
-        ctx.moveTo(midCx, cy);
-        ctx.lineTo(midCx, cy + hgH);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, hgH);
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#fbbf24';
         ctx.stroke();
@@ -173,10 +203,13 @@ export default function Course1Sim1({ simId, onComplete }) {
       const botSandH = hgH * fillRatio;
       const botSandW = hgW * fillRatio;
       ctx.beginPath();
-      ctx.moveTo(midCx - botSandW, cy + hgH);
-      ctx.lineTo(midCx + botSandW, cy + hgH);
-      ctx.lineTo(midCx, cy + hgH - botSandH);
+      ctx.moveTo(-botSandW, hgH);
+      ctx.lineTo(botSandW, hgH);
+      ctx.lineTo(0, hgH - botSandH);
       ctx.fill();
+
+      // Restore canvas context to draw everything else straight
+      ctx.restore();
 
       ctx.fillStyle = '#64748b';
       ctx.font = '14px monospace';
