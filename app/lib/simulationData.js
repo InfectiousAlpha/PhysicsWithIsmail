@@ -12,6 +12,10 @@ export const simulationData = {
   "c3-sim1": { name: "Rotasi Partikel Tunggal (Review)", passingGrade: 0, autoComplete: true },
   "c3-sim2": { name: "Sistem Banyak Partikel (Review)", passingGrade: 0, autoComplete: true },
 
+  // Course 4: Collision & Momentum
+  "c4-sim1": { name: "Newton's Third Law", passingGrade: 0, autoComplete: true },
+  "c4-sim2": { name: "Particle Momentum", passingGrade: 0, autoComplete: true },
+
   // Math 1: Basic Arithmetic
   "cm1-sim1": { name: "Addition Concept", isScored: false, autoComplete: true },
   "cm1-sim2": { name: "Addition Mastery", passingGrade: 50, autoComplete: false },
