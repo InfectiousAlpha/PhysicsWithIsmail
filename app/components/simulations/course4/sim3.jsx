@@ -10,9 +10,9 @@ export default function Course4Sim3({ simId, onComplete }) {
   
   // User Inputs
   const [m1Input, setM1Input] = useState('2');
-  const [v1Input, setV1Input] = useState('6.0');
+  const [v1Input, setV1Input] = useState('60');
   const [m2Input, setM2Input] = useState('2');
-  const [v2Input, setV2Input] = useState('6.0');
+  const [v2Input, setV2Input] = useState('60');
   const [forceInput, setForceInput] = useState('50');
 
   const canvasRef = useRef(null);
@@ -337,11 +337,11 @@ export default function Course4Sim3({ simId, onComplete }) {
     plotData.current = { v1: [], v2: [], ke1: [], ke2: [], keTotal: [] };
     
     physicsState.current.m1 = Math.max(0.1, Number(m1Input) || 1);
-    physicsState.current.v1 = (Number(v1Input) || 0) * 10;
+    physicsState.current.v1 = Number(v1Input) || 0;
     
     physicsState.current.m2 = Math.max(0.1, Number(m2Input) || 1);
     // Particle 2 moves left initially (negative velocity)
-    physicsState.current.v2 = -(Number(v2Input) || 0) * 10; 
+    physicsState.current.v2 = -(Number(v2Input) || 0); 
     
     physicsState.current.forceK = Number(forceInput) || 50;
     
@@ -404,66 +404,53 @@ export default function Course4Sim3({ simId, onComplete }) {
           <canvas ref={canvasRef} className="w-full h-full block"></canvas>
         </div>
 
-        {/* User Controls & Plots Area */}
-        <div className="bg-slate-800/80 p-6 rounded-xl border border-slate-600 flex flex-col md:flex-row gap-6 items-stretch shadow-lg min-h-[160px]">
+        {/* User Controls */}
+        <div className="bg-slate-800/80 p-6 rounded-xl border border-slate-600 flex flex-col md:flex-row gap-6 items-end shadow-lg">
           
-          {!showPlots ? (
-            <>
-              {/* Particle 1 Config */}
-              <div className="flex-1 w-full md:border-r border-slate-600 md:pr-4 flex flex-col justify-end">
-                <h4 className="text-red-400 font-bold mb-2 text-sm">Particle 1 (Left)</h4>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-slate-400 text-xs mb-1">Mass (kg)</label>
-                    <input type="number" step="0.1" disabled={isPlaying} value={m1Input} onChange={(e) => setM1Input(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 disabled:opacity-50" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-slate-400 text-xs mb-1">Speed (m/s)</label>
-                    <input type="number" step="0.1" disabled={isPlaying} value={v1Input} onChange={(e) => setV1Input(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 disabled:opacity-50" />
-                  </div>
-                </div>
+          {/* Particle 1 Config */}
+          <div className="flex-1 w-full border-r border-slate-600 pr-4">
+            <h4 className="text-red-400 font-bold mb-2 text-sm">Particle 1 (Left)</h4>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-slate-400 text-xs mb-1">Mass (kg)</label>
+                <input type="number" disabled={isPlaying} value={m1Input} onChange={(e) => setM1Input(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 disabled:opacity-50" />
               </div>
-
-              {/* Particle 2 Config */}
-              <div className="flex-1 w-full md:border-r border-slate-600 md:pr-4 flex flex-col justify-end">
-                <h4 className="text-blue-400 font-bold mb-2 text-sm">Particle 2 (Right)</h4>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-slate-400 text-xs mb-1">Mass (kg)</label>
-                    <input type="number" step="0.1" disabled={isPlaying} value={m2Input} onChange={(e) => setM2Input(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-blue-500 disabled:opacity-50" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-slate-400 text-xs mb-1">Speed (m/s)</label>
-                    <input type="number" step="0.1" disabled={isPlaying} value={v2Input} onChange={(e) => setV2Input(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-blue-500 disabled:opacity-50" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Interaction Config */}
-              <div className="flex-1 w-full flex flex-col justify-end">
-                <h4 className="text-purple-400 font-bold mb-2 text-sm">Interaction</h4>
-                <label className="block text-slate-400 text-xs mb-1">Bubble Force Magnitude</label>
-                <input type="number" disabled={isPlaying} value={forceInput} onChange={(e) => setForceInput(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-purple-500 disabled:opacity-50" />
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 w-full flex flex-col md:flex-row gap-4 min-h-[120px]">
-              <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
-                <canvas ref={vPlotRef} className="w-full h-full block"></canvas>
-              </div>
-              <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
-                <canvas ref={kePlotRef} className="w-full h-full block"></canvas>
+              <div className="flex-1">
+                <label className="block text-slate-400 text-xs mb-1">Speed</label>
+                <input type="number" disabled={isPlaying} value={v1Input} onChange={(e) => setV1Input(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 disabled:opacity-50" />
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Particle 2 Config */}
+          <div className="flex-1 w-full border-r border-slate-600 pr-4">
+            <h4 className="text-blue-400 font-bold mb-2 text-sm">Particle 2 (Right)</h4>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-slate-400 text-xs mb-1">Mass (kg)</label>
+                <input type="number" disabled={isPlaying} value={m2Input} onChange={(e) => setM2Input(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-blue-500 disabled:opacity-50" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-slate-400 text-xs mb-1">Speed</label>
+                <input type="number" disabled={isPlaying} value={v2Input} onChange={(e) => setV2Input(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-blue-500 disabled:opacity-50" />
+              </div>
+            </div>
+          </div>
+
+          {/* Interaction Config */}
+          <div className="flex-1 w-full">
+            <h4 className="text-purple-400 font-bold mb-2 text-sm">Interaction</h4>
+            <label className="block text-slate-400 text-xs mb-1">Bubble Force Magnitude</label>
+            <input type="number" disabled={isPlaying} value={forceInput} onChange={(e) => setForceInput(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-purple-500 disabled:opacity-50" />
+          </div>
 
           {/* Buttons */}
-          <div className="flex gap-2 w-full md:w-auto flex-col justify-end md:border-l border-slate-600 md:pl-6 pt-4 md:pt-0">
+          <div className="flex gap-2 w-full md:w-auto flex-col">
             <button onClick={handleStart} disabled={isPlaying}
               className={`px-6 py-2 font-bold rounded transition-all ${isPlaying ? 'bg-purple-800/50 text-purple-600/50' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg'}`}>
               START
@@ -479,6 +466,18 @@ export default function Course4Sim3({ simId, onComplete }) {
           </div>
 
         </div>
+
+        {/* Plots Area */}
+        {showPlots && (
+          <div className="flex flex-col md:flex-row gap-4 w-full h-48 mt-4">
+            <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
+              <canvas ref={vPlotRef} className="w-full h-full block"></canvas>
+            </div>
+            <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
+              <canvas ref={kePlotRef} className="w-full h-full block"></canvas>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
