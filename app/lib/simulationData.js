@@ -15,6 +15,7 @@ export const simulationData = {
   // Course 4: Collision & Momentum
   "c4-sim1": { name: "Newton's Third Law", passingGrade: 0, autoComplete: true },
   "c4-sim2": { name: "Particle Momentum", passingGrade: 0, autoComplete: true },
+  "c4-sim3": { name: "Elastic Collision & Energy", passingGrade: 0, autoComplete: true },
 
   // Math 1: Basic Arithmetic
   "cm1-sim1": { name: "Addition Concept", isScored: false, autoComplete: true },
