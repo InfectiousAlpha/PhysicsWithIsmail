@@ -6,7 +6,6 @@ export default function Course4Sim3({ simId, onComplete }) {
   const [phase, setPhase] = useState(0); 
   const [isSimReady, setIsSimReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showPlots, setShowPlots] = useState(false);
   
   // User Inputs
   const [m1Input, setM1Input] = useState('2');
@@ -16,13 +15,7 @@ export default function Course4Sim3({ simId, onComplete }) {
   const [forceInput, setForceInput] = useState('50');
 
   const canvasRef = useRef(null);
-  const vPlotRef = useRef(null);
-  const kePlotRef = useRef(null);
   const initialized = useRef(false);
-  const showPlotsRef = useRef(false);
-  
-  // Plot data ref to avoid re-renders
-  const plotData = useRef({ v1: [], v2: [], ke1: [], ke2: [], keTotal: [] });
   
   // Physics state kept in a mutable ref for the animation loop
   const physicsState = useRef({
@@ -42,11 +35,6 @@ export default function Course4Sim3({ simId, onComplete }) {
   const QUOTE_IN_TIME = 500;
   const SIM_IN_TIME = 2500; 
   const EXTRA_WAIT = 500; 
-
-  // Sync showPlots state to ref for the animation loop
-  useEffect(() => {
-    showPlotsRef.current = showPlots;
-  }, [showPlots]);
 
   // Setup initial phase progression
   useEffect(() => {
@@ -149,20 +137,6 @@ export default function Course4Sim3({ simId, onComplete }) {
         if (state.x2 > cw - 40) { state.x2 = cw - 40; state.v2 = -Math.abs(state.v2); }
         if (state.x1 > cw - 40) { state.x1 = cw - 40; state.v1 = -Math.abs(state.v1); }
         if (state.x2 < 40) { state.x2 = 40; state.v2 = Math.abs(state.v2); }
-
-        // Collect data for plots
-        const pd = plotData.current;
-        pd.v1.push(state.v1);
-        pd.v2.push(state.v2);
-        const currentKe1 = 0.5 * state.m1 * Math.pow(state.v1 / 10, 2);
-        const currentKe2 = 0.5 * state.m2 * Math.pow(state.v2 / 10, 2);
-        pd.ke1.push(currentKe1);
-        pd.ke2.push(currentKe2);
-        pd.keTotal.push(currentKe1 + currentKe2);
-
-        if (pd.v1.length > 300) {
-          pd.v1.shift(); pd.v2.shift(); pd.ke1.shift(); pd.ke2.shift(); pd.keTotal.shift();
-        }
       }
 
       // --- RENDER ---
@@ -252,76 +226,6 @@ export default function Course4Sim3({ simId, onComplete }) {
         ctx.fillText('⚡ REPULSION FIELD ACTIVE ⚡', cw / 2, cy + 70);
       }
 
-      // --- DRAW PLOTS ---
-      if (showPlotsRef.current) {
-        const vCanvas = vPlotRef.current;
-        const keCanvas = kePlotRef.current;
-        if (vCanvas && keCanvas) {
-          if (vCanvas.width === 0 || vCanvas.width !== vCanvas.parentElement.clientWidth) {
-            vCanvas.width = vCanvas.parentElement.clientWidth;
-            vCanvas.height = vCanvas.parentElement.clientHeight;
-          }
-          if (keCanvas.width === 0 || keCanvas.width !== keCanvas.parentElement.clientWidth) {
-            keCanvas.width = keCanvas.parentElement.clientWidth;
-            keCanvas.height = keCanvas.parentElement.clientHeight;
-          }
-
-          const pd = plotData.current;
-          
-          const drawGraph = (cContext, w, h, dataArrays, colors, labels, yMin, yMax, title) => {
-            cContext.clearRect(0, 0, w, h);
-            cContext.fillStyle = '#0f172a';
-            cContext.fillRect(0, 0, w, h);
-            cContext.fillStyle = '#94a3b8';
-            cContext.font = '10px sans-serif';
-            cContext.textAlign = 'left';
-            cContext.fillText(title, 10, 15);
-            
-            if (dataArrays[0].length === 0) return;
-
-            const dx = w / 300;
-
-            if (yMin < 0 && yMax > 0) {
-              const y0 = h - ((0 - yMin) / (yMax - yMin)) * h;
-              cContext.strokeStyle = '#334155';
-              cContext.beginPath(); cContext.moveTo(0, y0); cContext.lineTo(w, y0); cContext.stroke();
-            }
-
-            dataArrays.forEach((data, idx) => {
-              cContext.strokeStyle = colors[idx];
-              cContext.lineWidth = 2;
-              cContext.beginPath();
-              for (let i = 0; i < data.length; i++) {
-                const x = i * dx;
-                const y = h - ((data[i] - yMin) / (yMax - yMin)) * h;
-                if (i === 0) cContext.moveTo(x, y);
-                else cContext.lineTo(x, y);
-              }
-              cContext.stroke();
-              cContext.fillStyle = colors[idx];
-              cContext.fillText(labels[idx], 10, 30 + idx * 12);
-            });
-          };
-
-          let maxV = 10;
-          pd.v1.forEach(v => maxV = Math.max(maxV, Math.abs(v)));
-          pd.v2.forEach(v => maxV = Math.max(maxV, Math.abs(v)));
-          const vMin = -maxV * 1.2;
-          const vMax = maxV * 1.2;
-
-          let maxKE = 10;
-          pd.keTotal.forEach(k => maxKE = Math.max(maxKE, k));
-          const keMin = 0;
-          const keMax = maxKE * 1.2;
-
-          drawGraph(vCanvas.getContext('2d'), vCanvas.width, vCanvas.height, 
-            [pd.v1, pd.v2], ['#ef4444', '#3b82f6'], ['V1', 'V2'], vMin, vMax, 'Velocity (m/s)');
-            
-          drawGraph(keCanvas.getContext('2d'), keCanvas.width, keCanvas.height, 
-            [pd.ke1, pd.ke2, pd.keTotal], ['#ef4444', '#3b82f6', '#fbbf24'], ['KE1', 'KE2', 'Total KE'], keMin, keMax, 'Kinetic Energy (J)');
-        }
-      }
-
       animationFrameId = requestAnimationFrame(render);
     }
 
@@ -333,8 +237,6 @@ export default function Course4Sim3({ simId, onComplete }) {
   // --- CONTROLS ---
   const handleStart = () => {
     if (isPlaying) return;
-    
-    plotData.current = { v1: [], v2: [], ke1: [], ke2: [], keTotal: [] };
     
     physicsState.current.m1 = Math.max(0.1, Number(m1Input) || 1);
     physicsState.current.v1 = Number(v1Input) || 0;
@@ -358,7 +260,6 @@ export default function Course4Sim3({ simId, onComplete }) {
   };
 
   const handleReset = () => {
-    plotData.current = { v1: [], v2: [], ke1: [], ke2: [], keTotal: [] };
     physicsState.current.isRunning = false;
     const canvas = canvasRef.current;
     if (canvas) {
@@ -459,25 +360,9 @@ export default function Course4Sim3({ simId, onComplete }) {
               className="px-6 py-2 font-bold rounded transition-colors bg-slate-700 hover:bg-slate-600 text-white">
               RESET
             </button>
-            <button onClick={() => setShowPlots(!showPlots)}
-              className="px-6 py-2 font-bold rounded transition-colors bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-600 mt-2">
-              {showPlots ? 'HIDE PLOTS' : 'SHOW PLOTS'}
-            </button>
           </div>
 
         </div>
-
-        {/* Plots Area */}
-        {showPlots && (
-          <div className="flex flex-col md:flex-row gap-4 w-full h-48 mt-4">
-            <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
-              <canvas ref={vPlotRef} className="w-full h-full block"></canvas>
-            </div>
-            <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
-              <canvas ref={kePlotRef} className="w-full h-full block"></canvas>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
