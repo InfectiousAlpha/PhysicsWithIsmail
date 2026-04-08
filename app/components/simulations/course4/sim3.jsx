@@ -6,16 +6,25 @@ export default function Course4Sim3({ simId, onComplete }) {
   const [phase, setPhase] = useState(0); 
   const [isSimReady, setIsSimReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showPlots, setShowPlots] = useState(false);
   
   // User Inputs
   const [m1Input, setM1Input] = useState('2');
-  const [v1Input, setV1Input] = useState('60');
+  const [v1Input, setV1Input] = useState('6.0');
   const [m2Input, setM2Input] = useState('2');
-  const [v2Input, setV2Input] = useState('60');
+  const [v2Input, setV2Input] = useState('6.0');
   const [forceInput, setForceInput] = useState('50');
 
   const canvasRef = useRef(null);
+  const vPlotRef = useRef(null);
+  const kePlotRef = useRef(null);
   const initialized = useRef(false);
+  const showPlotsRef = useRef(false);
+  const isPausedRef = useRef(false);
+  
+  // Plot data ref to avoid re-renders
+  const plotData = useRef({ v1: [], v2: [], ke1: [], ke2: [], keTotal: [] });
   
   // Physics state kept in a mutable ref for the animation loop
   const physicsState = useRef({
@@ -35,6 +44,9 @@ export default function Course4Sim3({ simId, onComplete }) {
   const QUOTE_IN_TIME = 500;
   const SIM_IN_TIME = 2500; 
   const EXTRA_WAIT = 500; 
+
+  useEffect(() => { showPlotsRef.current = showPlots; }, [showPlots]);
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
   // Setup initial phase progression
   useEffect(() => {
@@ -108,7 +120,7 @@ export default function Course4Sim3({ simId, onComplete }) {
       let currentForce = 0;
 
       // --- PHYSICS UPDATE ---
-      if (state.isRunning) {
+      if (state.isRunning && !isPausedRef.current) {
         let dist = state.x2 - state.x1;
         
         // Check if particles are inside each other's bubbles
@@ -137,6 +149,20 @@ export default function Course4Sim3({ simId, onComplete }) {
         if (state.x2 > cw - 40) { state.x2 = cw - 40; state.v2 = -Math.abs(state.v2); }
         if (state.x1 > cw - 40) { state.x1 = cw - 40; state.v1 = -Math.abs(state.v1); }
         if (state.x2 < 40) { state.x2 = 40; state.v2 = Math.abs(state.v2); }
+
+        // Collect data for plots
+        const pd = plotData.current;
+        pd.v1.push(state.v1 / 10); // scale back to m/s
+        pd.v2.push(state.v2 / 10);
+        const currentKe1 = 0.5 * state.m1 * Math.pow(state.v1 / 10, 2);
+        const currentKe2 = 0.5 * state.m2 * Math.pow(state.v2 / 10, 2);
+        pd.ke1.push(currentKe1);
+        pd.ke2.push(currentKe2);
+        pd.keTotal.push(currentKe1 + currentKe2);
+
+        if (pd.v1.length > 300) {
+          pd.v1.shift(); pd.v2.shift(); pd.ke1.shift(); pd.ke2.shift(); pd.keTotal.shift();
+        }
       }
 
       // --- RENDER ---
@@ -226,6 +252,76 @@ export default function Course4Sim3({ simId, onComplete }) {
         ctx.fillText('⚡ REPULSION FIELD ACTIVE ⚡', cw / 2, cy + 70);
       }
 
+      // --- DRAW PLOTS ---
+      if (showPlotsRef.current) {
+        const vCanvas = vPlotRef.current;
+        const keCanvas = kePlotRef.current;
+        if (vCanvas && keCanvas) {
+          if (vCanvas.width === 0 || vCanvas.width !== vCanvas.parentElement.clientWidth) {
+            vCanvas.width = vCanvas.parentElement.clientWidth;
+            vCanvas.height = vCanvas.parentElement.clientHeight;
+          }
+          if (keCanvas.width === 0 || keCanvas.width !== keCanvas.parentElement.clientWidth) {
+            keCanvas.width = keCanvas.parentElement.clientWidth;
+            keCanvas.height = keCanvas.parentElement.clientHeight;
+          }
+
+          const pd = plotData.current;
+          
+          const drawGraph = (cContext, w, h, dataArrays, colors, labels, yMin, yMax, title) => {
+            cContext.clearRect(0, 0, w, h);
+            cContext.fillStyle = '#0f172a';
+            cContext.fillRect(0, 0, w, h);
+            cContext.fillStyle = '#94a3b8';
+            cContext.font = '10px sans-serif';
+            cContext.textAlign = 'left';
+            cContext.fillText(title, 10, 15);
+            
+            if (dataArrays[0].length === 0) return;
+
+            const dx = w / 300;
+
+            if (yMin < 0 && yMax > 0) {
+              const y0 = h - ((0 - yMin) / (yMax - yMin)) * h;
+              cContext.strokeStyle = '#334155';
+              cContext.beginPath(); cContext.moveTo(0, y0); cContext.lineTo(w, y0); cContext.stroke();
+            }
+
+            dataArrays.forEach((data, idx) => {
+              cContext.strokeStyle = colors[idx];
+              cContext.lineWidth = 2;
+              cContext.beginPath();
+              for (let i = 0; i < data.length; i++) {
+                const x = i * dx;
+                const y = h - ((data[i] - yMin) / (yMax - yMin)) * h;
+                if (i === 0) cContext.moveTo(x, y);
+                else cContext.lineTo(x, y);
+              }
+              cContext.stroke();
+              cContext.fillStyle = colors[idx];
+              cContext.fillText(labels[idx], 10, 30 + idx * 12);
+            });
+          };
+
+          let maxV = 10;
+          pd.v1.forEach(v => maxV = Math.max(maxV, Math.abs(v)));
+          pd.v2.forEach(v => maxV = Math.max(maxV, Math.abs(v)));
+          const vMin = -maxV * 1.2;
+          const vMax = maxV * 1.2;
+
+          let maxKE = 10;
+          pd.keTotal.forEach(k => maxKE = Math.max(maxKE, k));
+          const keMin = 0;
+          const keMax = maxKE * 1.2;
+
+          drawGraph(vCanvas.getContext('2d'), vCanvas.width, vCanvas.height, 
+            [pd.v1, pd.v2], ['#ef4444', '#3b82f6'], ['V1', 'V2'], vMin, vMax, 'Velocity (m/s)');
+            
+          drawGraph(keCanvas.getContext('2d'), keCanvas.width, keCanvas.height, 
+            [pd.ke1, pd.ke2, pd.keTotal], ['#ef4444', '#3b82f6', '#fbbf24'], ['KE1', 'KE2', 'Total KE'], keMin, keMax, 'Kinetic Energy (J)');
+        }
+      }
+
       animationFrameId = requestAnimationFrame(render);
     }
 
@@ -238,12 +334,14 @@ export default function Course4Sim3({ simId, onComplete }) {
   const handleStart = () => {
     if (isPlaying) return;
     
+    plotData.current = { v1: [], v2: [], ke1: [], ke2: [], keTotal: [] };
+    
     physicsState.current.m1 = Math.max(0.1, Number(m1Input) || 1);
-    physicsState.current.v1 = Number(v1Input) || 0;
+    physicsState.current.v1 = (Number(v1Input) || 0) * 10;
     
     physicsState.current.m2 = Math.max(0.1, Number(m2Input) || 1);
     // Particle 2 moves left initially (negative velocity)
-    physicsState.current.v2 = -(Number(v2Input) || 0); 
+    physicsState.current.v2 = -(Number(v2Input) || 0) * 10; 
     
     physicsState.current.forceK = Number(forceInput) || 50;
     
@@ -257,9 +355,15 @@ export default function Course4Sim3({ simId, onComplete }) {
     physicsState.current.lastTime = 0;
     
     setIsPlaying(true);
+    setIsPaused(false);
+  };
+
+  const handlePause = () => {
+    setIsPaused(!isPaused);
   };
 
   const handleReset = () => {
+    plotData.current = { v1: [], v2: [], ke1: [], ke2: [], keTotal: [] };
     physicsState.current.isRunning = false;
     const canvas = canvasRef.current;
     if (canvas) {
@@ -269,6 +373,7 @@ export default function Course4Sim3({ simId, onComplete }) {
     physicsState.current.v1 = 0;
     physicsState.current.v2 = 0;
     setIsPlaying(false);
+    setIsPaused(false);
   };
 
   return (
@@ -300,9 +405,22 @@ export default function Course4Sim3({ simId, onComplete }) {
            <p className="text-white text-sm">Observe energy transfer and Newton's Third Law in action via overlapping force bubbles.</p>
         </div>
 
-        {/* Canvas Area */}
-        <div className="w-full flex-grow bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden min-h-[300px]">
-          <canvas ref={canvasRef} className="w-full h-full block"></canvas>
+        {/* Canvas Area (Split when plots are shown) */}
+        <div className="w-full flex-grow flex flex-col md:flex-row gap-4 min-h-[300px]">
+          <div className={`bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden flex-grow transition-all ${showPlots ? 'md:w-1/2' : 'w-full'}`}>
+            <canvas ref={canvasRef} className="w-full h-full block absolute inset-0"></canvas>
+          </div>
+          
+          {showPlots && (
+            <div className="w-full md:w-1/2 flex flex-col gap-4">
+              <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
+                <canvas ref={vPlotRef} className="w-full h-full block absolute inset-0"></canvas>
+              </div>
+              <div className="flex-1 bg-slate-900/50 rounded-xl border border-white/10 relative overflow-hidden">
+                <canvas ref={kePlotRef} className="w-full h-full block absolute inset-0"></canvas>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* User Controls */}
@@ -314,12 +432,12 @@ export default function Course4Sim3({ simId, onComplete }) {
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="block text-slate-400 text-xs mb-1">Mass (kg)</label>
-                <input type="number" disabled={isPlaying} value={m1Input} onChange={(e) => setM1Input(e.target.value)}
+                <input type="number" step="0.1" disabled={isPlaying} value={m1Input} onChange={(e) => setM1Input(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 disabled:opacity-50" />
               </div>
               <div className="flex-1">
-                <label className="block text-slate-400 text-xs mb-1">Speed</label>
-                <input type="number" disabled={isPlaying} value={v1Input} onChange={(e) => setV1Input(e.target.value)}
+                <label className="block text-slate-400 text-xs mb-1">Speed (m/s)</label>
+                <input type="number" step="0.1" disabled={isPlaying} value={v1Input} onChange={(e) => setV1Input(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 disabled:opacity-50" />
               </div>
             </div>
@@ -331,35 +449,47 @@ export default function Course4Sim3({ simId, onComplete }) {
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="block text-slate-400 text-xs mb-1">Mass (kg)</label>
-                <input type="number" disabled={isPlaying} value={m2Input} onChange={(e) => setM2Input(e.target.value)}
+                <input type="number" step="0.1" disabled={isPlaying} value={m2Input} onChange={(e) => setM2Input(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-blue-500 disabled:opacity-50" />
               </div>
               <div className="flex-1">
-                <label className="block text-slate-400 text-xs mb-1">Speed</label>
-                <input type="number" disabled={isPlaying} value={v2Input} onChange={(e) => setV2Input(e.target.value)}
+                <label className="block text-slate-400 text-xs mb-1">Speed (m/s)</label>
+                <input type="number" step="0.1" disabled={isPlaying} value={v2Input} onChange={(e) => setV2Input(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-blue-500 disabled:opacity-50" />
               </div>
             </div>
           </div>
 
           {/* Interaction Config */}
-          <div className="flex-1 w-full">
+          <div className="flex-1 w-full border-r border-slate-600 pr-4">
             <h4 className="text-purple-400 font-bold mb-2 text-sm">Interaction</h4>
-            <label className="block text-slate-400 text-xs mb-1">Bubble Force Magnitude</label>
+            <label className="block text-slate-400 text-xs mb-1">Force Magnitude</label>
             <input type="number" disabled={isPlaying} value={forceInput} onChange={(e) => setForceInput(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-purple-500 disabled:opacity-50" />
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-2 w-full md:w-auto flex-col">
-            <button onClick={handleStart} disabled={isPlaying}
-              className={`px-6 py-2 font-bold rounded transition-all ${isPlaying ? 'bg-purple-800/50 text-purple-600/50' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg'}`}>
-              START
-            </button>
-            <button onClick={handleReset}
-              className="px-6 py-2 font-bold rounded transition-colors bg-slate-700 hover:bg-slate-600 text-white">
-              RESET
-            </button>
+          <div className="flex gap-2 w-full md:w-auto flex-col justify-end">
+            <div className="flex gap-2">
+              <button onClick={handleStart} disabled={isPlaying && !isPaused}
+                className={`flex-1 px-4 py-2 font-bold rounded transition-all ${isPlaying && !isPaused ? 'bg-purple-800/50 text-purple-600/50' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg'}`}>
+                START
+              </button>
+              <button onClick={handlePause} disabled={!isPlaying}
+                className={`flex-1 px-4 py-2 font-bold rounded transition-colors ${!isPlaying ? 'bg-amber-800/50 text-amber-600/50' : 'bg-amber-600 hover:bg-amber-500 text-white'}`}>
+                {isPaused ? 'RESUME' : 'PAUSE'}
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleReset}
+                className="flex-1 px-4 py-2 font-bold rounded transition-colors bg-slate-700 hover:bg-slate-600 text-white">
+                RESET
+              </button>
+              <button onClick={() => setShowPlots(!showPlots)}
+                className={`flex-1 px-4 py-2 font-bold rounded transition-colors ${showPlots ? 'bg-sky-700 text-white' : 'bg-slate-800 text-sky-400'} hover:bg-sky-600 hover:text-white border border-slate-600 hover:border-sky-500`}>
+                PLOTS
+              </button>
+            </div>
           </div>
 
         </div>
