@@ -17,6 +17,7 @@ export const simulationData = {
   "c4-sim2": { name: "Particle Momentum", passingGrade: 0, autoComplete: true },
   "c4-sim3": { name: "Elastic Collision & Energy", passingGrade: 0, autoComplete: true },
   "c4-sim4": { name: "Internal Energy & Molecules", passingGrade: 0, autoComplete: true },
+  "c4-sim5": { name: "Collision Mathematics", passingGrade: 0, autoComplete: true },
 
   // Math 1: Basic Arithmetic
   "cm1-sim1": { name: "Addition Concept", isScored: false, autoComplete: true },
