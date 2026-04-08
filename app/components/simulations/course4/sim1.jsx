@@ -139,10 +139,9 @@ export default function Course4Sim1({ simId, onComplete }) {
 
       // RED ARROW (Force from Red applied to Blue)
       // Points right (0 rad)
-      // Top position: x = redX, y = cy - 70
-      // Center position: x = blueX - 50 (to leave room for arrow head), y = cy
-      const rStart = { x: redX - 25, y: cy - 70 };
-      const rEnd = { x: blueX - 70, y: cy };
+      // The tail (startX) starts above the Red particle, and moves exactly to the center of the Blue particle
+      const rStart = { x: redX, y: cy - 70 };
+      const rEnd = { x: blueX, y: cy };
       
       const rCurrentX = rStart.x + (rEnd.x - rStart.x) * easeT;
       const rCurrentY = rStart.y + (rEnd.y - rStart.y) * easeT;
@@ -151,10 +150,9 @@ export default function Course4Sim1({ simId, onComplete }) {
 
       // BLUE ARROW (Force from Blue applied to Red)
       // Points left (PI rad)
-      // Top position: x = blueX, y = cy - 70
-      // Center position: x = redX + 50, y = cy
-      const bStart = { x: blueX + 25, y: cy - 70 };
-      const bEnd = { x: redX + 70, y: cy };
+      // The tail (startX) starts above the Blue particle, and moves exactly to the center of the Red particle
+      const bStart = { x: blueX, y: cy - 70 };
+      const bEnd = { x: redX, y: cy };
       
       const bCurrentX = bStart.x + (bEnd.x - bStart.x) * easeT;
       const bCurrentY = bStart.y + (bEnd.y - bStart.y) * easeT;
