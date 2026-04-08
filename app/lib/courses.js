@@ -27,6 +27,15 @@ export const courses = [
     category: 'physics',
     passingGrade: 0
   },
+  {
+    id: '4',
+    title: 'Course 4: Collision & Momentum',
+    description: 'Understand Newton\'s Third Law, impacts, and conservation of momentum.',
+    requiredLevel: 3,
+    unlocksLevel: 4,
+    category: 'physics',
+    passingGrade: 0
+  },
   
   // --- MATHEMATICS COURSES ---
   {
