@@ -1,259 +1,418 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
-export default function Course1Sim2({ simId }) {
+// Define the tests/levels
+const TESTS = [
+  {
+    name: "Test 1: Stationary Target",
+    setup: (target) => {
+      target.x = 400; target.y = 150;
+      target.vx = 0; target.vy = 0;
+      target.active = true;
+      target.color = '#ef4444'; // Red
+    }
+  },
+  {
+    name: "Test 2: Slow Constant Speed",
+    setup: (target) => {
+      target.x = 100; target.y = 200;
+      target.vx = 120; target.vy = 0; // Moves 120px per second
+      target.active = true;
+      target.color = '#f97316'; // Orange
+    }
+  },
+  {
+    name: "Test 3: Fast Constant Speed",
+    setup: (target) => {
+      target.x = 700; target.y = 250;
+      target.vx = -250; target.vy = 0; // Moves -250px per second
+      target.active = true;
+      target.color = '#eab308'; // Yellow
+    }
+  },
+  {
+    name: "Test 4: Diagonal Bounce",
+    setup: (target) => {
+      target.x = 150; target.y = 150;
+      target.vx = 150; target.vy = 80;
+      target.active = true;
+      target.color = '#a855f7'; // Purple
+    }
+  }
+];
+
+export default function Course1Sim3({ simId, onScoreUpdate, onComplete }) {
+  const [phase, setPhase] = useState(0); 
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Game UI State
+  const [currentTestIndex, setCurrentTestIndex] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+  const [testStatus, setTestStatus] = useState('playing'); // playing, passed, finished
+  const [finalScore, setFinalScore] = useState(0);
+  
+  const canvasRef = useRef(null);
+  const initialized = useRef(false);
+  
+  const QUOTE_IN_TIME = 500;
+  const SIM_IN_TIME = 2500;
+  const BULLET_TIME_MS = 1000; 
+  const SHOOTER_POS = { x: 400, y: 580 };
+  const LOGICAL_W = 800;
+  const LOGICAL_H = 600;
+
+  // Mutable Physics State
+  const engine = useRef({
+    target: { x: 0, y: 0, radius: 20, vx: 0, vy: 0, active: false, color: '#ef4444' },
+    bullets: [],
+    markers: [],
+    particles: [],
+    lastTime: 0,
+    isTransitioning: false
+  });
+
+  // Initialization & Phase Progression
   useEffect(() => {
-    const canvas = document.getElementById(`sim-canvas-${simId}`);
+    if (initialized.current) return;
+    initialized.current = true;
+    let isMounted = true;
+
+    // Load first test data
+    TESTS[0].setup(engine.current.target);
+
+    setTimeout(() => { if (isMounted) setPhase(1); }, QUOTE_IN_TIME);
+    setTimeout(() => { 
+      if (isMounted) { 
+        setPhase(2); 
+        setIsAnimating(true); 
+      } 
+    }, SIM_IN_TIME);
+
+    return () => { isMounted = false; };
+  }, []);
+
+  // Handle Level Transitions
+  const handleNextTest = useCallback(() => {
+    const nextIdx = currentTestIndex + 1;
+    
+    if (nextIdx >= TESTS.length) {
+      setTestStatus('finished');
+      
+      // Scoring Logic: Start at 100, lose 5 points for every extra attempt beyond the minimum 4
+      const extraAttempts = Math.max(0, attempts - TESTS.length);
+      const calculatedScore = Math.max(0, 100 - (extraAttempts * 5));
+      
+      setFinalScore(calculatedScore);
+      if (onScoreUpdate) onScoreUpdate(calculatedScore);
+      if (onComplete) onComplete();
+      return;
+    }
+
+    // Reset Engine State for next level
+    engine.current.isTransitioning = false;
+    engine.current.bullets = [];
+    engine.current.markers = [];
+    engine.current.particles = [];
+    TESTS[nextIdx].setup(engine.current.target);
+    
+    setCurrentTestIndex(nextIdx);
+    setTestStatus('playing');
+  }, [currentTestIndex, attempts, onScoreUpdate, onComplete]);
+
+  // Handle Canvas Clicks (Shooting)
+  const handleCanvasClick = (e) => {
+    const st = engine.current;
+    if (!st.target.active || st.isTransitioning || testStatus !== 'playing') return;
+
+    const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let isActive = true;
-    
-    let params = { m1: 2.0, m2: 2.0, L: 150, f1: 0.0, f2: 0.0, damping: 0.0 };
-    let state = { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, angle: 0, angularVel: 0, lastTime: 0 };
-    let physics_output = { inertia: 0, torque: 0, f_net_mag: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = LOGICAL_W / rect.width;
+    const scaleY = LOGICAL_H / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
 
-    const sliders = {
-      m1: document.getElementById(`slider-m1-${simId}`),
-      m2: document.getElementById(`slider-m2-${simId}`),
-      len: document.getElementById(`slider-len-${simId}`),
-      damping: document.getElementById(`slider-damping-${simId}`),
-      f1: document.getElementById(`slider-f1-${simId}`),
-      f2: document.getElementById(`slider-f2-${simId}`)
-    };
+    const now = performance.now();
 
-    const displays = {
-      m1: document.getElementById(`val-m1-${simId}`),
-      m2: document.getElementById(`val-m2-${simId}`),
-      len: document.getElementById(`val-len-${simId}`),
-      damping: document.getElementById(`val-damping-${simId}`),
-      f1: document.getElementById(`val-f1-${simId}`),
-      f2: document.getElementById(`val-f2-${simId}`),
-      inertia: document.getElementById(`stat-inertia-${simId}`),
-      omega: document.getElementById(`stat-omega-${simId}`),
-      v: document.getElementById(`stat-v-${simId}`),
-      torque: document.getElementById(`stat-torque-rigid-${simId}`)
-    };
-
-    function updateParams() {
-      if(!sliders.m1) return;
-      params.m1 = parseFloat(sliders.m1.value);
-      params.m2 = parseFloat(sliders.m2.value);
-      params.L = parseFloat(sliders.len.value);
-      params.damping = parseFloat(sliders.damping.value);
-      params.f1 = parseFloat(sliders.f1.value);
-      params.f2 = parseFloat(sliders.f2.value);
-
-      if(displays.m1) {
-        displays.m1.textContent = params.m1.toFixed(1) + " kg";
-        displays.m2.textContent = params.m2.toFixed(1) + " kg";
-        displays.len.textContent = params.L.toFixed(0) + " px";
-        displays.damping.textContent = params.damping.toFixed(2);
-        displays.f1.textContent = params.f1.toFixed(1) + " N";
-        displays.f2.textContent = params.f2.toFixed(1) + " N";
-      }
-    }
-
-    const listeners = [];
-    Object.values(sliders).forEach(s => { 
-      if(s) {
-        s.addEventListener('input', updateParams);
-        listeners.push({ el: s, type: 'input', fn: updateParams });
-      }
+    // Fire Bullet
+    st.bullets.push({
+      startX: SHOOTER_POS.x, startY: SHOOTER_POS.y,
+      endX: clickX, endY: clickY,
+      x: SHOOTER_POS.x, y: SHOOTER_POS.y,
+      startTime: now, radius: 6, active: true
     });
 
-    const btnReset = document.getElementById(`btn-reset-${simId}`);
-    const resetFn = () => {
-      state.pos = { x: 0, y: 0 }; state.vel = { x: 0, y: 0 }; state.angle = 0; state.angularVel = 0;
-    };
-    if(btnReset) {
-      btnReset.addEventListener('click', resetFn);
-      listeners.push({ el: btnReset, type: 'click', fn: resetFn });
+    // Place Click Marker
+    st.markers.push({
+      x: clickX, y: clickY,
+      startTime: now, active: true
+    });
+
+    setAttempts(a => a + 1);
+  };
+
+  const createExplosion = (x, y, color) => {
+    const st = engine.current;
+    for (let i = 0; i < 30; i++) {
+      st.particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.5) * 10,
+        life: 1.0, color: color
+      });
     }
+  };
 
-    function updatePhysics(dt) {
-      const M = params.m1 + params.m2;
-      const r1 = (params.m2 / M) * params.L;
-      const r2 = (params.m1 / M) * params.L;
-      const I = params.m1 * r1 * r1 + params.m2 * r2 * r2;
-      physics_output.inertia = I;
+  // Main Render & Physics Loop
+  useEffect(() => {
+    if (!isAnimating || testStatus === 'finished') return;
 
-      const forceDir = state.angle - Math.PI / 2;
-      const F1x = params.f1 * Math.cos(forceDir);
-      const F1y = params.f1 * Math.sin(forceDir);
-      const F2x = params.f2 * Math.cos(forceDir);
-      const F2y = params.f2 * Math.sin(forceDir);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
 
-      const F_net_x = F1x + F2x;
-      const F_net_y = F1y + F2y;
+    function gameLoop(now) {
+      const st = engine.current;
+      if (!st.lastTime) st.lastTime = now;
+      const dt = Math.min((now - st.lastTime) / 1000, 0.05);
+      st.lastTime = now;
+
+      // --- UPDATE PHYSICS ---
       
-      const torque = (params.f2 * r2) - (params.f1 * r1);
-      physics_output.torque = torque;
+      // Update Target
+      if (st.target.active) {
+        st.target.x += st.target.vx * dt;
+        st.target.y += st.target.vy * dt;
 
-      const ax = F_net_x / M;
-      const ay = F_net_y / M;
-      const dragFactor = 1.0 - (params.damping * 0.05);
-      
-      state.vel.x = (state.vel.x + ax * dt) * dragFactor;
-      state.vel.y = (state.vel.y + ay * dt) * dragFactor;
-      state.pos.x += state.vel.x * dt * 10;
-      state.pos.y += state.vel.y * dt * 10;
+        // Bounce horizontally
+        if (st.target.x - st.target.radius < 0) {
+          st.target.x = st.target.radius;
+          st.target.vx *= -1;
+        } else if (st.target.x + st.target.radius > LOGICAL_W) {
+          st.target.x = LOGICAL_W - st.target.radius;
+          st.target.vx *= -1;
+        }
 
-      const alpha = torque / I * 500;
-      state.angularVel = (state.angularVel + alpha * dt) * dragFactor;
-      state.angle += state.angularVel * dt;
+        // Bounce vertically
+        if (st.target.y - st.target.radius < 0) {
+          st.target.y = st.target.radius;
+          st.target.vy *= -1;
+        } else if (st.target.y + st.target.radius > 450) { // Limit bottom bound
+          st.target.y = 450 - st.target.radius;
+          st.target.vy *= -1;
+        }
+      }
 
-      const w = canvas.width / 2; const h = canvas.height / 2; const margin = 50;
-      const wallDamp = 0.8;
-      if (state.pos.x > w - margin) { state.pos.x = w - margin; state.vel.x *= -wallDamp; }
-      if (state.pos.x < -w + margin) { state.pos.x = -w + margin; state.vel.x *= -wallDamp; }
-      if (state.pos.y > h - margin) { state.pos.y = h - margin; state.vel.y *= -wallDamp; }
-      if (state.pos.y < -h + margin) { state.pos.y = -h + margin; state.vel.y *= -wallDamp; }
-    }
+      // Update Bullets
+      st.bullets.forEach(b => {
+        if (!b.active) return;
 
-    function drawArrow(ctx, startX, startY, angle, magnitude, color) {
-      if (Math.abs(magnitude) < 0.1) return;
-      const scale = 5; 
-      const len = magnitude * scale;
-      const endX = startX + Math.cos(angle) * len;
-      const endY = startY + Math.sin(angle) * len;
+        let elapsed = now - b.startTime;
+        let progress = elapsed / BULLET_TIME_MS;
 
-      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke();
-      const arrowAngle = Math.atan2(endY - startY, endX - startX);
-      const headLen = 8;
-      ctx.beginPath(); ctx.moveTo(endX, endY);
-      ctx.lineTo(endX - headLen * Math.cos(arrowAngle - Math.PI/6), endY - headLen * Math.sin(arrowAngle - Math.PI/6));
-      ctx.lineTo(endX - headLen * Math.cos(arrowAngle + Math.PI/6), endY - headLen * Math.sin(arrowAngle + Math.PI/6));
+        if (progress >= 1.0) {
+          progress = 1.0;
+          b.active = false;
+          createExplosion(b.endX, b.endY, '#3b82f6'); // Small blue poof on miss
+        }
+
+        b.x = b.startX + (b.endX - b.startX) * progress;
+        b.y = b.startY + (b.endY - b.startY) * progress;
+
+        // Collision Check
+        if (st.target.active && b.active) {
+          let dist = Math.hypot(b.x - st.target.x, b.y - st.target.y);
+          if (dist < st.target.radius + b.radius && !st.isTransitioning) {
+            st.target.active = false;
+            b.active = false;
+            st.isTransitioning = true;
+            createExplosion(st.target.x, st.target.y, st.target.color);
+            setTestStatus('passed'); // Trigger React state update for UI
+          }
+        }
+      });
+
+      // Update Click Markers
+      st.markers.forEach(m => {
+        if (!m.active) return;
+        if (now - m.startTime >= BULLET_TIME_MS) m.active = false;
+      });
+
+      // Update Particles
+      st.particles.forEach(p => {
+        if (p.life > 0) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= dt * 2; 
+        }
+      });
+
+      // Cleanup
+      st.bullets = st.bullets.filter(b => b.active);
+      st.markers = st.markers.filter(m => m.active);
+      st.particles = st.particles.filter(p => p.life > 0);
+
+      // --- DRAWING ---
+      ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+
+      // Background Grid
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      for(let i=0; i<LOGICAL_W; i+=50) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, LOGICAL_H); ctx.stroke();
+      }
+      for(let i=0; i<LOGICAL_H; i+=50) {
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(LOGICAL_W, i); ctx.stroke();
+      }
+
+      // Draw Markers
+      st.markers.forEach(m => {
+        let progress = (now - m.startTime) / BULLET_TIME_MS;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 30 * (1 - progress), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(59, 130, 246, ${1 - progress})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Crosshair
+        ctx.beginPath();
+        ctx.moveTo(m.x - 5, m.y); ctx.lineTo(m.x + 5, m.y);
+        ctx.moveTo(m.x, m.y - 5); ctx.lineTo(m.x, m.y + 5);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.stroke();
+      });
+
+      // Draw Target
+      if (st.target.active) {
+        ctx.beginPath();
+        ctx.arc(st.target.x, st.target.y, st.target.radius, 0, Math.PI * 2);
+        ctx.fillStyle = st.target.color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Draw Shooter
+      ctx.beginPath();
+      ctx.arc(SHOOTER_POS.x, SHOOTER_POS.y, 25, Math.PI, 0);
+      ctx.fillStyle = '#94a3b8';
       ctx.fill();
+      ctx.fillRect(SHOOTER_POS.x - 5, SHOOTER_POS.y - 35, 10, 35);
+
+      // Draw Bullets
+      st.bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#60a5fa';
+        ctx.fill();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#60a5fa';
+      });
+      ctx.shadowBlur = 0;
+
+      // Draw Particles
+      st.particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+
+      animationFrameId = requestAnimationFrame(gameLoop);
     }
 
-    function loop(timestamp) {
-      if (!isActive) return;
-      if (!state.lastTime) state.lastTime = timestamp;
-      const dt = Math.min((timestamp - state.lastTime) / 1000, 0.05);
-      state.lastTime = timestamp;
-
-      updatePhysics(dt);
-
-      if(displays.inertia) {
-        displays.inertia.textContent = physics_output.inertia.toFixed(0);
-        displays.omega.textContent = state.angularVel.toFixed(2);
-        displays.v.textContent = (Math.sqrt(state.vel.x**2 + state.vel.y**2) * 10).toFixed(1);
-        displays.torque.textContent = physics_output.torque.toFixed(1);
-      }
-
-      if(canvas.width === 0 || canvas.width !== canvas.parentElement.clientWidth) { 
-        canvas.width = canvas.parentElement.clientWidth; 
-        canvas.height = canvas.parentElement.clientHeight; 
-      }
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-
-      ctx.save();
-      ctx.translate(cx + state.pos.x, cy + state.pos.y);
-      ctx.rotate(state.angle);
-
-      const M = params.m1 + params.m2;
-      const r1 = (params.m2 / M) * params.L;
-      const r2 = (params.m1 / M) * params.L;
-
-      ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(-r1, 0); ctx.lineTo(r2, 0); ctx.stroke();
-
-      ctx.fillStyle = "#3b82f6"; ctx.beginPath(); ctx.arc(-r1, 0, 5 + params.m1 * 3, 0, Math.PI*2); ctx.fill();
-      drawArrow(ctx, -r1, 0, -Math.PI/2, params.f1, "#60a5fa");
-
-      ctx.fillStyle = "#fb923c"; ctx.beginPath(); ctx.arc(r2, 0, 5 + params.m2 * 3, 0, Math.PI*2); ctx.fill();
-      drawArrow(ctx, r2, 0, -Math.PI/2, params.f2, "#fbbf24");
-
-      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
-      
-      ctx.restore();
-      animationFrameId = requestAnimationFrame(loop);
-    }
-
-    updateParams();
-    animationFrameId = requestAnimationFrame(loop);
-
-    return () => {
-      isActive = false;
-      cancelAnimationFrame(animationFrameId);
-      listeners.forEach(l => l.el.removeEventListener(l.type, l.fn));
-    };
-  }, [simId]);
+    animationFrameId = requestAnimationFrame(gameLoop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isAnimating, testStatus]);
 
   return (
-    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-teal-500 overflow-hidden text-white mb-8">
-      <div className="mb-6">
-        <h3 className="text-2xl font-bold text-white">Sistem Rigid Rotor 2D</h3>
-        <p className="text-teal-400 text-sm font-mono mt-1">Analisis Translasi & Rotasi</p>
+    <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-fuchsia-500 overflow-hidden text-white flex-grow flex flex-col relative w-full h-full min-h-[600px]">
+      
+      {/* Background ambient light */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-fuchsia-500/10 blur-[100px] rounded-full pointer-events-none z-0"></div>
+
+      {/* Intro Quote */}
+      <div 
+        className={`absolute left-0 w-full flex justify-center px-8 transition-all duration-1000 ease-in-out transform z-20 pointer-events-none
+          ${phase === 0 ? 'opacity-0 top-1/2 -translate-y-1/2' : ''}
+          ${phase === 1 ? 'opacity-100 top-1/2 -translate-y-1/2' : ''}
+          ${phase >= 2 ? 'opacity-100 top-6 translate-y-0 scale-90' : ''}
+        `}
+      >
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif italic text-white drop-shadow-lg max-w-4xl text-center">
+          "Time is relative, but a one-second delay is absolute. Anticipate."
+        </h2>
       </div>
 
-      <div className="relative w-full h-[600px] bg-slate-900/50 rounded-xl overflow-hidden flex flex-col md:flex-row border border-white/10">
-        <div className="w-full md:w-80 p-6 flex flex-col gap-4 bg-slate-900/80 border-b md:border-b-0 md:border-r border-white/10 overflow-y-auto shrink-0 z-10">
-          <h2 className="text-lg font-bold text-green-400 mb-2">Parameter</h2>
-          <div className="flex flex-col gap-4">
+      {/* Game Container */}
+      <div 
+        className={`w-full flex-grow relative transition-all duration-1000 flex flex-col items-center z-10 mt-16
+          ${phase >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}
+        `}
+      >
+        {/* HUD */}
+        {testStatus !== 'finished' && (
+          <div className="w-full max-w-[800px] flex justify-between items-start mb-4 bg-slate-900/60 p-4 rounded-xl border border-slate-700">
             <div>
-              <div className="flex justify-between text-sm mb-1 text-slate-300">
-                <label className="text-blue-400">Massa 1</label> <span id={`val-m1-${simId}`}>2.0 kg</span>
-              </div>
-              <input type="range" id={`slider-m1-${simId}`} className="sim-slider" min="1" max="10" step="0.5" defaultValue="2.0" />
+              <h1 className="text-xl md:text-2xl font-bold text-blue-400">
+                {TESTS[currentTestIndex]?.name}
+              </h1>
+              <p className="text-xs md:text-sm text-slate-400 mt-1">
+                Predict the target's position. Bullet takes <span className="text-yellow-400 font-bold">exactly 1 second</span> to arrive.
+              </p>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1 text-slate-300">
-                <label className="text-orange-400">Massa 2</label> <span id={`val-m2-${simId}`}>2.0 kg</span>
+            <div className="text-right flex flex-col items-end">
+              <div className="text-lg md:text-xl font-bold text-slate-200">
+                Attempts: <span className="text-fuchsia-400">{attempts}</span>
               </div>
-              <input type="range" id={`slider-m2-${simId}`} className="sim-slider" min="1" max="10" step="0.5" defaultValue="2.0" />
+              {testStatus === 'passed' && (
+                <button 
+                  onClick={handleNextTest}
+                  className="mt-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-emerald-500/20 animate-in fade-in"
+                >
+                  Next Test &rarr;
+                </button>
+              )}
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1 text-slate-300">
-                <label>Panjang</label> <span id={`val-len-${simId}`}>150 px</span>
-              </div>
-              <input type="range" id={`slider-len-${simId}`} className="sim-slider" min="50" max="250" step="10" defaultValue="150" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1 text-slate-300">
-                <label>Hambatan Udara</label> <span id={`val-damping-${simId}`}>0.00</span>
-              </div>
-              <input type="range" id={`slider-damping-${simId}`} className="sim-slider" min="0" max="1" step="0.01" defaultValue="0.0" />
-            </div>
-            <div className="w-full h-px bg-white/10 my-1"></div>
-            <div>
-              <div className="flex justify-between text-sm mb-1 text-slate-300">
-                <label className="text-blue-400">Gaya P1</label> <span id={`val-f1-${simId}`}>0.0 N</span>
-              </div>
-              <input type="range" id={`slider-f1-${simId}`} className="sim-slider" min="-20" max="20" step="0.5" defaultValue="0.0" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1 text-slate-300">
-                <label className="text-orange-400">Gaya P2</label> <span id={`val-f2-${simId}`}>0.0 N</span>
-              </div>
-              <input type="range" id={`slider-f2-${simId}`} className="sim-slider" min="-20" max="20" step="0.5" defaultValue="0.0" />
-            </div>
-            <button id={`btn-reset-${simId}`} className="mt-4 py-2 px-4 bg-red-500/80 hover:bg-red-500 text-white rounded font-bold transition-colors">
-              Reset Posisi
-            </button>
           </div>
-        </div>
+        )}
 
-        <div className="flex-grow relative h-full w-full bg-slate-800/20">
-          <div className="absolute top-4 right-4 p-4 bg-slate-900/80 rounded-lg text-xs font-mono border border-slate-700 pointer-events-none z-10 backdrop-blur-sm shadow-xl min-w-[200px]">
-            <div className="flex justify-between text-teal-400 font-bold mb-2 border-b border-slate-600 pb-1 gap-4">
-              <span>Status Sistem</span>
+        {/* Canvas Area */}
+        <div className="relative w-full max-w-[800px] bg-slate-800/80 rounded-xl overflow-hidden border border-slate-700 shadow-2xl flex-grow flex items-center justify-center">
+          {testStatus === 'finished' ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-sm z-30 animate-in fade-in duration-500 p-6 text-center">
+              <h3 className="text-4xl font-bold mb-4 text-emerald-400">Simulation Complete!</h3>
+              <div className="text-2xl mb-2 text-slate-200">
+                Total Attempts: <span className="text-fuchsia-400 font-bold">{attempts}</span>
+              </div>
+              <div className="text-xl mb-8 text-slate-300">
+                Final Accuracy Score: <span className="text-emerald-400 font-bold">{finalScore}</span>
+              </div>
+              <p className="text-slate-400 max-w-md">
+                Your prediction accuracy demonstrates a solid grasp of spatial forecasting over time.
+                Click "Next" or "Submit" below to record your performance.
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-400">
-              <span>Inersia (I):</span> <span id={`stat-inertia-${simId}`} className="text-right text-slate-200">0.0</span>
-              <span>Vel Sudut:</span> <span id={`stat-omega-${simId}`} className="text-right text-slate-200">0.0</span>
-              <span>Vel Linear:</span> <span id={`stat-v-${simId}`} className="text-right text-purple-300">0.0</span>
-              <span className="text-white font-bold">Total Torsi:</span> <span id={`stat-torque-rigid-${simId}`} className="text-right text-white font-bold">0.0</span>
-            </div>
-          </div>
-          <canvas id={`sim-canvas-${simId}`} className="w-full h-full block"></canvas>
+          ) : (
+            <canvas 
+              ref={canvasRef} 
+              width={LOGICAL_W} 
+              height={LOGICAL_H}
+              onMouseDown={handleCanvasClick}
+              className={`w-full max-h-[60vh] object-contain bg-[#1e293b] rounded-lg ${testStatus === 'passed' ? 'cursor-default opacity-80' : 'cursor-crosshair'}`}
+              style={{ boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)' }}
+            />
+          )}
+        </div>
+        
+        <div className="mt-4 text-center max-w-2xl px-4 text-slate-400 text-xs md:text-sm">
+           <p><strong>Mechanics:</strong> Click anywhere on the grid. Your turret will fire a bullet towards that point. The bullet is engineered to take exactly 1.0 seconds to reach the clicked destination, regardless of distance. Hit the target to advance.</p>
         </div>
       </div>
     </div>
