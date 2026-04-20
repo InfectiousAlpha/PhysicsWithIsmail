@@ -115,8 +115,8 @@ export default async function CoursePage({ params }) {
           {course.description}
         </p>
         
-        {/* Full-Width Lesson Material Box (uses negative margins: -3rem to stretch and hit the edges) */}
-        <div style={{margin: '2.5rem -3rem 0 -3rem', padding: '1.5rem 3rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', borderLeft: `4px solid ${course.category === 'math' ? '#10b981' : 'var(--primary-blue)'}`}}>
+        {/* Lesson Material Box inset with padding to Box 2 */}
+        <div style={{marginTop: '2.5rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '8px', borderLeft: `4px solid ${course.category === 'math' ? '#10b981' : 'var(--primary-blue)'}`}}>
           <h3 style={{fontWeight: 'bold', marginBottom: '0.5rem'}}>Lesson Material</h3>
           <p>Please complete all the interactive laboratories below to finish this section.</p>
         </div>
