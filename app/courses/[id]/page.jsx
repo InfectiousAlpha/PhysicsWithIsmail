@@ -101,7 +101,8 @@ export default async function CoursePage({ params }) {
       </Link>
 
       {/* The main container restores its `padding: 3rem` so texts align perfectly naturally */}
-      <div style={{marginTop: '2rem', background: 'white', padding: '3rem', borderRadius: '12px', border: '1px solid var(--light-blue)', overflow: 'hidden'}}>
+      {/* Negative horizontal margins (-1.5rem) applied to hit the edges of the Root Container */}
+      <div style={{margin: '2rem -1.5rem 0 -1.5rem', background: 'white', padding: '3rem', borderRadius: '12px', border: '1px solid var(--light-blue)', overflow: 'hidden'}}>
         
         <div className={`badge ${course.category === 'math' ? 'bg-emerald-100 text-emerald-700' : 'badge-blue'}`}>
           {course.category === 'math' ? 'Mathematics Course' : 'Physics Course'}
