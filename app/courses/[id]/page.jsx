@@ -100,30 +100,28 @@ export default async function CoursePage({ params }) {
         ← Back to Dashboard
       </Link>
 
-      <div style={{marginTop: '2rem', background: 'white', padding: '3rem 0', borderRadius: '12px', border: '1px solid var(--light-blue)', overflow: 'hidden'}}>
+      {/* The main container restores its `padding: 3rem` so texts align perfectly naturally */}
+      <div style={{marginTop: '2rem', background: 'white', padding: '3rem', borderRadius: '12px', border: '1px solid var(--light-blue)', overflow: 'hidden'}}>
         
-        {/* Constrained Text Header */}
-        <div style={{padding: '0 3rem'}}>
-          <div className={`badge ${course.category === 'math' ? 'bg-emerald-100 text-emerald-700' : 'badge-blue'}`}>
-            {course.category === 'math' ? 'Mathematics Course' : 'Physics Course'}
-          </div>
-          
-          <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', margin: '1rem 0', color: 'var(--dark-blue)'}}>
-            {course.title}
-          </h1>
-          <p style={{fontSize: '1.1rem', color: '#475569', lineHeight: '1.6'}}>
-            {course.description}
-          </p>
+        <div className={`badge ${course.category === 'math' ? 'bg-emerald-100 text-emerald-700' : 'badge-blue'}`}>
+          {course.category === 'math' ? 'Mathematics Course' : 'Physics Course'}
         </div>
         
-        {/* Full-Width Lesson Material Box */}
-        <div style={{marginTop: '2.5rem', padding: '1.5rem 3rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', borderLeft: `4px solid ${course.category === 'math' ? '#10b981' : 'var(--primary-blue)'}`}}>
+        <h1 style={{fontSize: '2.5rem', fontWeight: 'bold', margin: '1rem 0', color: 'var(--dark-blue)'}}>
+          {course.title}
+        </h1>
+        <p style={{fontSize: '1.1rem', color: '#475569', lineHeight: '1.6'}}>
+          {course.description}
+        </p>
+        
+        {/* Full-Width Lesson Material Box (uses negative margins: -3rem to stretch and hit the edges) */}
+        <div style={{margin: '2.5rem -3rem 0 -3rem', padding: '1.5rem 3rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', borderLeft: `4px solid ${course.category === 'math' ? '#10b981' : 'var(--primary-blue)'}`}}>
           <h3 style={{fontWeight: 'bold', marginBottom: '0.5rem'}}>Lesson Material</h3>
           <p>Please complete all the interactive laboratories below to finish this section.</p>
         </div>
 
-        {/* Full-Width Simulation Carousel Area */}
         <div style={{marginTop: '2rem'}}>
+          {/* The SimulationCarousel handles its own negative margins now */}
           {courseSimulationsArray.length > 0 ? (
             <SimulationCarousel 
               simulations={courseSimulationsArray} 
@@ -136,7 +134,7 @@ export default async function CoursePage({ params }) {
               CompleteCourseBtn={CompleteCourseButton}
             />
           ) : (
-            <div style={{padding: '0 3rem'}}>
+            <>
               <p style={{marginTop: '2rem', color: '#64748b', textAlign: 'center'}}>No simulations found for this course yet.</p>
               <CompleteCourseButton 
                 courseId={course.id} 
@@ -145,7 +143,7 @@ export default async function CoursePage({ params }) {
                 currentLevel={currentLevel} 
                 isReady={true} 
               />
-            </div>
+            </>
           )}
         </div>
 
