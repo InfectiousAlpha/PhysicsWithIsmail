@@ -94,7 +94,7 @@ export default function SimulationCarousel({
   // PHASE 1: INTRO SCREEN
   // =====================================
   const renderIntro = () => (
-    <div className={`glass-panel p-8 rounded-2xl border-l-4 overflow-hidden text-white flex-grow flex flex-col ${!isFullscreen ? 'mt-8' : ''} ${category === 'math' ? 'border-l-emerald-500' : 'border-l-[var(--primary-blue)]'}`}>
+    <div className={`glass-panel py-8 px-6 md:px-12 border-l-4 overflow-hidden text-white flex-grow flex flex-col ${!isFullscreen ? 'rounded-none border-r-0 mt-4' : 'rounded-2xl mt-8'} ${category === 'math' ? 'border-l-emerald-500' : 'border-l-[var(--primary-blue)]'}`}>
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
@@ -186,11 +186,11 @@ export default function SimulationCarousel({
     const currentSimComplete = isSimComplete[currentIndex];
 
     return (
-      <div className={`flex flex-col gap-6 flex-grow h-full ${!isFullscreen ? 'mt-8' : ''}`}>
+      <div className={`flex flex-col flex-grow h-full ${!isFullscreen ? 'gap-4 mt-4' : 'gap-6 mt-8'}`}>
         
         {/* Navigation Header */}
-        <div className={`flex justify-between items-center rounded-xl border-2 shadow-sm shrink-0 ${
-            isFullscreen ? 'bg-slate-800 border-slate-700 p-4' : 'bg-[#f8fafc] border-[var(--light-blue)] p-4'
+        <div className={`flex justify-between items-center shadow-sm shrink-0 ${
+            isFullscreen ? 'bg-slate-800 border-slate-700 p-4 rounded-xl border-2' : 'bg-[#f8fafc] border-y-2 border-x-0 border-[var(--light-blue)] py-4 px-6 md:px-12'
           }`}
         >
           <button
@@ -246,7 +246,15 @@ export default function SimulationCarousel({
         </div>
 
         {/* Active Simulation Container */}
-        <div className="simulation-wrapper flex flex-col flex-grow transition-all duration-300 min-h-0">
+        <div className={`simulation-wrapper flex flex-col flex-grow transition-all duration-300 min-h-0 ${!isFullscreen ? 'mt-0' : ''}`}>
+          {!isFullscreen && (
+            <style>{`
+              .simulation-wrapper .glass-panel {
+                border-radius: 0 !important;
+                border-right: none !important;
+              }
+            `}</style>
+          )}
           {currentSimWithProps}
         </div>
       </div>
@@ -278,7 +286,7 @@ export default function SimulationCarousel({
     const isCourseFailed = failedModules || meanScore < coursePassingGrade;
     
     return (
-      <div className={`glass-panel p-8 rounded-2xl border-l-4 overflow-hidden text-white flex-grow flex flex-col ${!isFullscreen ? 'mt-8' : ''} ${isCourseFailed ? 'border-l-red-500' : 'border-l-emerald-500'}`}>
+      <div className={`glass-panel py-8 px-6 md:px-12 border-l-4 overflow-hidden text-white flex-grow flex flex-col ${!isFullscreen ? 'rounded-none border-r-0 mt-4' : 'rounded-2xl mt-8'} ${isCourseFailed ? 'border-l-red-500' : 'border-l-emerald-500'}`}>
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-3xl font-bold">Course Report</h3>
